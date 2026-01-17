@@ -1,0 +1,37 @@
+const { Trip } = require('../models');
+
+const createTrip = async (data, partnerId) => {
+  // data contains title, description, price, destination, advanceAmount, type, startDate, endDate, capacity
+  return await Trip.create({ ...data, partnerId });
+};
+
+const getTrips = async (partnerId) => {
+  return await Trip.findAll({ where: { partnerId } });
+};
+
+const getTripById = async (id, partnerId) => {
+  return await Trip.findOne({ where: { id, partnerId } });
+};
+
+const updateTrip = async (id, partnerId, data) => {
+  const trip = await Trip.findOne({ where: { id, partnerId } });
+  if (!trip) throw new Error('Trip not found');
+  
+  return await trip.update(data);
+};
+
+const deleteTrip = async (id, partnerId) => {
+  const trip = await Trip.findOne({ where: { id, partnerId } });
+  if (!trip) throw new Error('Trip not found');
+  
+  await trip.destroy();
+  return true;
+};
+
+module.exports = {
+  createTrip,
+  getTrips,
+  getTripById,
+  updateTrip,
+  deleteTrip,
+};
