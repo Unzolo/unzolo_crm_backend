@@ -50,7 +50,22 @@ const addPayment = Joi.object({
   paymentDate: Joi.date().iso().required(),
 });
 
+const cancelBooking = Joi.object({
+  memberIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+  refundAmount: Joi.number().min(0).optional(),
+  cancellationReason: Joi.string().optional(),
+  paymentMethod: Joi.string().optional(),
+  paymentDate: Joi.date().iso().required(),
+})
+.custom((value, helpers) => {
+    if (value.refundAmount > 0 && !value.paymentMethod) {
+        return helpers.message('Payment method is required when there is a refund amount');
+    }
+    return value;
+});
+
 module.exports = {
   createBooking,
   addPayment,
+  cancelBooking,
 };

@@ -1,4 +1,5 @@
 const { Booking, Trip, Customer, Payment, sequelize } = require('../models');
+const { BOOKING_STATUS } = require('../utils/constants'); // Import constants
 
 
 const createBooking = async (data, partnerId) => {
@@ -7,9 +8,9 @@ const createBooking = async (data, partnerId) => {
     const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl } = data;
 
     // Check if trip exists and belongs to partner
-    const trip = await Trip.findOne({ 
+    const trip = await Trip.findOne({
       where: { id: tripId, partnerId },
-      transaction 
+      transaction
     });
     if (!trip) {
       throw new Error('Trip not found or access denied');
@@ -33,7 +34,7 @@ const createBooking = async (data, partnerId) => {
       tripId,
       partnerId,
       amount: totalAmount,
-      status: 'pending',
+      status: (totalAmount >= parseFloat(trip.price) * memberCount) ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.PENDING,
     }, { transaction });
 
     // Create Customers
@@ -44,7 +45,7 @@ const createBooking = async (data, partnerId) => {
     await Customer.bulkCreate(customersData, { transaction });
 
     // Create Initial Payment
-    const { Payment } = require('../models'); // Late require to avoid circular dependency issues if any
+    // const { Payment } = require('../models'); // Late require to avoid circular dependency issues if any // This line is no longer needed as Payment is already imported
     await Payment.create({
       bookingId: booking.id,
       amount: totalAmount,
@@ -57,7 +58,7 @@ const createBooking = async (data, partnerId) => {
     }, { transaction });
 
     await transaction.commit();
-    
+
     // Return booking with customers
     return await Booking.findByPk(booking.id, {
       include: [
@@ -81,7 +82,7 @@ const getBookings = async (partnerId, tripId = null) => {
   const bookings = await Booking.findAll({
     where: whereClause,
     include: [
-      { 
+      {
         model: Trip,
         attributes: ['id', 'title', 'destination', 'startDate', 'price', 'advanceAmount']
       },
@@ -93,24 +94,31 @@ const getBookings = async (partnerId, tripId = null) => {
     order: [['createdAt', 'DESC']],
   });
 
-  const formattedBookings = bookings.map(booking => {
-    const bookingJson = booking.toJSON();
-    const memberCount = bookingJson.Customers ? bookingJson.Customers.length : 0;
-    const tripPrice = parseFloat(bookingJson.Trip.price);
-    const advanceAmount = parseFloat(bookingJson.Trip.advanceAmount);
-    const totalCost = tripPrice * memberCount;
-    const paidAmount = parseFloat(bookingJson.amount);
+    // Calculate additional fields
+    const formattedBookings = bookings.map(booking => {
+      const bookingJson = booking.toJSON();
+      const tripPrice = parseFloat(bookingJson.Trip.price);
+      
+      // Count ACTIVE members for cost calculation
+      const activeMembers = bookingJson.Customers.filter(c => c.status === 'active');
+      const activeMemberCount = activeMembers.length;
+      
+      // Total Cost based on ACTIVE members
+      const totalCost = tripPrice * activeMemberCount;
+      
+      const paidAmount = parseFloat(bookingJson.amount); // Net Paid (from DB)
     
-    return {
-      ...bookingJson,
-      totalCost,
-      paidAmount,
-      memberCount,
-      tripAdvanceAmount: advanceAmount,
-    };
-  });
+      return {
+        ...bookingJson,
+        totalCost,
+        paidAmount,
+        activeMemberCount, // Useful for frontend
+        memberCount: bookingJson.Customers.length, // Total members (historical)
+        tripAdvanceAmount: parseFloat(bookingJson.Trip.advanceAmount)
+      };
+    });
 
-  if (tripId) {
+    // Calculate Trip Summary
     let totalCustomers = 0;
     let fullyPaidCustomers = 0;
     let advancePaidCustomers = 0;
@@ -118,25 +126,20 @@ const getBookings = async (partnerId, tripId = null) => {
     let totalPending = 0;
 
     formattedBookings.forEach(b => {
-      totalCustomers += b.memberCount;
-      totalCollected += b.paidAmount;
+      totalCustomers += b.activeMemberCount; // User defined logic might vary, but active customers makes sense for summary
+      totalCollected += b.paidAmount; // Net collected
       
-      const pending = b.totalCost - b.paidAmount;
-      totalPending += Math.max(0, pending); // Ensure no negative pending
+      const pending = b.totalCost - b.paidAmount; // Cost(Active) - NetPaid
+      if (pending > 0) totalPending += pending;
 
-      // Payment Status Counts (Member-wise)
-      if (b.paidAmount >= b.totalCost - 0.01) { // Tolerance for float precision
-        fullyPaidCustomers += b.memberCount;
-      } else {
-         // Check if they paid at least the advance amount per person
-         const requiredAdvance = b.tripAdvanceAmount * b.memberCount;
-         if (b.paidAmount >= requiredAdvance - 0.01) {
-             advancePaidCustomers += b.memberCount;
-         }
-         // Else: Paid less than advance (not requested to track specifically)
+      if (pending <= 0) {
+          fullyPaidCustomers += b.activeMemberCount;
+      } else if (b.paidAmount > 0) {
+          advancePaidCustomers += b.activeMemberCount;
       }
     });
 
+  if (tripId) {
     return {
       summary: {
         totalCustomers,
@@ -158,7 +161,7 @@ const getBookingById = async (id, partnerId) => {
     include: [
       { model: Trip },
       { model: Customer }, // Include all members for details view
-      { 
+      {
         model: Payment,
         separate: true, // Use separate query for sorting
         order: [['paymentDate', 'DESC']]
@@ -169,19 +172,45 @@ const getBookingById = async (id, partnerId) => {
     throw new Error('Booking not found');
   }
 
-  const bookingJson = booking.toJSON();
-  const memberCount = bookingJson.Customers ? bookingJson.Customers.length : 0;
-  const tripPrice = parseFloat(bookingJson.Trip.price);
-  const totalCost = tripPrice * memberCount;
-  const paidAmount = parseFloat(bookingJson.amount);
-  const remainingAmount = Math.max(0, totalCost - paidAmount);
+    const bookingJson = booking.toJSON();
 
-  return {
-    ...bookingJson,
-    totalCost,
-    paidAmount,
-    remainingAmount,
-  };
+    const tripPrice = parseFloat(bookingJson.Trip.price);
+    
+    // 1. Calculate Active Cost
+    const activeMembers = bookingJson.Customers.filter(c => c.status === 'active');
+    const totalCost = tripPrice * activeMembers.length;
+
+    // 2. Calculate Gross Paid & Refund from Payments Array
+    // (Since booking.amount is Net, we derive Gross from payments for display if requested)
+    let grossPaid = 0;
+    let refundAmount = 0;
+
+    if (bookingJson.Payments) {
+        bookingJson.Payments.forEach(p => {
+            const amt = parseFloat(p.amount);
+            if (p.paymentType === 'refund') {
+                refundAmount += amt;
+            } else {
+                grossPaid += amt;
+            }
+        });
+    }
+
+    // 3. Net Paid (should match booking.amount roughly)
+    const netPaid = grossPaid - refundAmount;
+
+    // 4. Remaining Amount (Balance to pay OR Surplus)
+    // Formula: What they should pay (active cost) - What they have currently paid (net)
+    const remainingAmount = totalCost - netPaid;
+
+    return {
+      ...bookingJson,
+      totalCost,         // Cost of ACTIVE members
+      paidAmount: grossPaid, // Historical Total Paid (as requested)
+      refundAmount,      // Total Refunded
+      netPaidAmount: netPaid, // Money currently held
+      remainingAmount    // Positive = Due, Negative = Surplus/Refundable
+    };
 };
 
 const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
@@ -211,9 +240,9 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
       const memberCount = booking.Customers.length;
       const totalTripCost = tripPrice * memberCount;
       const currentPaid = parseFloat(booking.amount);
-      
+
       paymentAmount = totalTripCost - currentPaid;
-      
+
       if (paymentAmount <= 0) {
          throw new Error('Booking is already fully paid or overpaid');
       }
@@ -235,16 +264,106 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
 
     // 4. Update Booking Amount (Total Paid)
     const newTotalAmount = parseFloat(booking.amount) + paymentAmount;
-    
+
     await booking.update({
       amount: newTotalAmount
     }, { transaction });
 
+    // 5. Check if Fully Paid -> Update Status
+    // Re-fetch or calculate cost. We have Trip and Customers.
+    const tripPrice = parseFloat(booking.Trip.price);
+    // Count ONLY active members for cost threshold (logic decision: if you cancel member, cost goes down, so you might become fully paid)
+    const activeMembers = booking.Customers.filter(c => c.status === 'active'); 
+    const totalCost = tripPrice * activeMembers.length;
+
+    // Use tolerance for float comparison
+    if (newTotalAmount >= totalCost - 0.01 && booking.status !== BOOKING_STATUS.CANCELLED && booking.status !== BOOKING_STATUS.PARTIAL_CANCELLED) {
+        // Only auto-confirm if not cancelled/partial (or should we? User said "unless they cancel it")
+        // If it's partial cancelled, we probably shouldn't override that status with 'confirmed'.
+        if (booking.status === BOOKING_STATUS.PENDING) {
+             await booking.update({ status: BOOKING_STATUS.CONFIRMED }, { transaction });
+        }
+    }
+
     await transaction.commit();
 
-    return payment;
+    return await getBookingById(bookingId, partnerId);
   } catch (error) {
-    await transaction.rollback();
+    if (transaction) await transaction.rollback();
+    throw error;
+  }
+};
+
+const cancelBookingMembers = async (bookingId, data, partnerId) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { memberIds, refundAmount, cancellationReason, paymentMethod, paymentDate, screenshotUrl } = data;
+
+    // 1. Fetch Booking with Customers
+    const booking = await Booking.findOne({
+      where: { id: bookingId, partnerId },
+      include: [{ model: Customer }],
+      transaction
+    });
+
+    if (!booking) {
+      throw new Error('Booking not found or access denied');
+    }
+
+    // 2. Validate Members
+    const invalidMembers = memberIds.filter(id => !booking.Customers.find(c => c.id === id));
+    if (invalidMembers.length > 0) {
+        throw new Error(`Invalid member IDs: ${invalidMembers.join(', ')}`);
+    }
+
+    // 3. Update Status of Selected Members
+    await Customer.update(
+        { status: 'cancelled' },
+        { where: { id: memberIds }, transaction }
+    );
+
+    // 4. Record Refund Payment (if any)
+    if (refundAmount && refundAmount > 0) {
+        await Payment.create({
+            bookingId: booking.id,
+            amount: refundAmount, // Stored as positive number
+            method: paymentMethod,
+            paymentType: 'refund',
+            transactionId: null, // or pass if collected
+            status: 'completed',
+            paymentDate: paymentDate || new Date(),
+            screenshotUrl: screenshotUrl || null
+        }, { transaction });
+
+        // 5. Update Booking Amount (Net Paid)
+        // If we want booking.amount to represent "Net Amount Held", we SUBTRACT refund.
+        const newTotal = parseFloat(booking.amount) - parseFloat(refundAmount);
+        await Booking.update({ amount: newTotal }, { where: { id: bookingId }, transaction });
+    }
+
+    // 6. Check if ALL members are cancelled
+    const currentParamMembers = new Set(memberIds);
+    // Count active members: existing active ones minus the ones we just cancelled
+    // Actually, safer to re-query or check memory state.
+    // Let's use logic:
+    const activeMembersCount = booking.Customers.filter(c =>
+        c.status === 'active' && !currentParamMembers.has(c.id)
+    ).length;
+
+    let newStatus = booking.status;
+    if (activeMembersCount === 0) {
+        newStatus = BOOKING_STATUS.CANCELLED;
+    } else {
+        newStatus = BOOKING_STATUS.PARTIAL_CANCELLED;
+    }
+
+    await Booking.update({ status: newStatus }, { where: { id: bookingId }, transaction });
+
+    await transaction.commit();
+    return await getBookingById(bookingId, partnerId);
+
+  } catch (error) {
+    if (transaction) await transaction.rollback();
     throw error;
   }
 };
@@ -254,4 +373,5 @@ module.exports = {
   getBookings,
   getBookingById,
   addPaymentToBooking,
+  cancelBookingMembers,
 };

@@ -7,6 +7,7 @@ module.exports = {
     PENDING: 'pending',
     CONFIRMED: 'confirmed',
     CANCELLED: 'cancelled',
+    PARTIAL_CANCELLED: 'partial_cancelled',
   },
   PAYMENT_STATUS: {
     PENDING: 'pending',

@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
+const { BOOKING_STATUS } = require('../utils/constants'); // Re-using constants or defining new one if needed, but simple string is fine for now or add to constants
 
 const Customer = sequelize.define('Customer', {
   id: {
@@ -26,6 +27,10 @@ const Customer = sequelize.define('Customer', {
   isPrimary: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'cancelled'),
+    defaultValue: 'active',
   },
 }, {
   tableName: 'customers',

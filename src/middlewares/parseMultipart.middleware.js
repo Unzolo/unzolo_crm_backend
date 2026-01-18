@@ -8,6 +8,11 @@ const parseMultipartBody = (req, res, next) => {
     if (req.body.members && typeof req.body.members === 'string') {
       req.body.members = JSON.parse(req.body.members);
     }
+    
+    // Parse 'memberIds' for cancellation
+    if (req.body.memberIds && typeof req.body.memberIds === 'string') {
+      req.body.memberIds = JSON.parse(req.body.memberIds);
+    }
 
     // You can add other fields here if needed e.g. location objects
     

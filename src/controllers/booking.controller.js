@@ -72,9 +72,35 @@ const addPaymentToBooking = async (req, res) => {
   }
 };
 
+const cancelBookingMembers = async (req, res) => {
+  try {
+    let screenshotUrl = null;
+    if (req.file) {
+      screenshotUrl = await uploadToCloudinary(req.file.path);
+    }
+    const data = { ...req.body, screenshotUrl };
+    
+    // Parse memberIds if coming as string (Postman formData)
+    if (typeof data.memberIds === 'string') {
+        try {
+            data.memberIds = JSON.parse(data.memberIds);
+        } catch (e) {
+            return error(res, 'Invalid memberIds format');
+        }
+    }
+
+    const result = await bookingService.cancelBookingMembers(req.params.id, data, req.user.id);
+    return success(res, result, 'Booking cancelled/updated successfully');
+  } catch (err) {
+    return error(res, err.message);
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
   getBookingById,
+  getBookingById,
   addPaymentToBooking,
+  cancelBookingMembers,
 };
