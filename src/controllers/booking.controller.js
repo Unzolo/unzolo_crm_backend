@@ -5,7 +5,8 @@ const { uploadToCloudinary } = require('../utils/cloudinary');
 
 const createBooking = async (req, res) => {
   try {
-    console.log('--- Debug: Create Booking ---');
+    console.log('--- Debug: Add Payment ---');
+    console.log('Content-Type:', req.headers['content-type']);
     console.log('req.file:', req.file);
     console.log('req.body:', req.body);
 
@@ -51,6 +52,7 @@ const getBookingById = async (req, res) => {
 const addPaymentToBooking = async (req, res) => {
   try {
     console.log('--- Debug: Add Payment ---');
+    console.log('Content-Type:', req.headers['content-type']);
     console.log('req.file:', req.file);
     
     let screenshotUrl = null;

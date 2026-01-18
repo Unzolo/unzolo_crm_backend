@@ -7,6 +7,7 @@ const createBooking = Joi.object({
   customAmount: Joi.number().min(0).optional(), // Alias for amount
   paymentMethod: Joi.string().required(),
   transactionId: Joi.string().optional(),
+  paymentDate: Joi.date().iso().required(), // Enforce payment date
   members: Joi.array().items(
     Joi.object({
       name: Joi.string().required(),
@@ -46,6 +47,7 @@ const addPayment = Joi.object({
   }),
   paymentMethod: Joi.string().required(),
   transactionId: Joi.string().optional(),
+  paymentDate: Joi.date().iso().required(),
 });
 
 module.exports = {

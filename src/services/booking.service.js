@@ -4,7 +4,7 @@ const { Booking, Trip, Customer, Payment, sequelize } = require('../models');
 const createBooking = async (data, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { tripId, members, paymentType, customAmount, amount, paymentMethod, transactionId, screenshotUrl } = data;
+    const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl } = data;
 
     // Check if trip exists and belongs to partner
     const trip = await Trip.findOne({ 
@@ -53,7 +53,7 @@ const createBooking = async (data, partnerId) => {
       transactionId: transactionId || null,
       screenshotUrl: screenshotUrl || null,
       status: 'completed', // Assuming initial payment is successful if recording it here
-      paymentDate: new Date(),
+      paymentDate: paymentDate, // Use provided date
     }, { transaction });
 
     await transaction.commit();
@@ -187,7 +187,7 @@ const getBookingById = async (id, partnerId) => {
 const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { amount: inputAmount, paymentType, paymentMethod, transactionId, screenshotUrl } = paymentData;
+    const { amount: inputAmount, paymentType, paymentMethod, paymentDate, transactionId, screenshotUrl } = paymentData;
 
     // 1. Check if booking exists and belongs to partner, include Trip and Customer for calculation
     const booking = await Booking.findOne({
@@ -230,7 +230,7 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
       transactionId: transactionId || null,
       screenshotUrl: screenshotUrl || null,
       status: 'completed',
-      paymentDate: new Date(),
+      paymentDate: paymentDate, // Use provided date
     }, { transaction });
 
     // 4. Update Booking Amount (Total Paid)
