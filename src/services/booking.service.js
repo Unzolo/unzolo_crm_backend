@@ -49,6 +49,7 @@ const createBooking = async (data, partnerId) => {
       bookingId: booking.id,
       amount: totalAmount,
       method: paymentMethod,
+      paymentType: paymentType, // Pass paymentType (full/advance)
       transactionId: transactionId || null,
       status: 'completed', // Assuming initial payment is successful if recording it here
       paymentDate: new Date(),
@@ -154,13 +155,31 @@ const getBookingById = async (id, partnerId) => {
     where: { id, partnerId },
     include: [
       { model: Trip },
-      { model: Customer } // Include all members for details view
+      { model: Customer }, // Include all members for details view
+      { 
+        model: Payment,
+        separate: true, // Use separate query for sorting
+        order: [['paymentDate', 'DESC']]
+      }
     ],
   });
   if (!booking) {
     throw new Error('Booking not found');
   }
-  return booking;
+
+  const bookingJson = booking.toJSON();
+  const memberCount = bookingJson.Customers ? bookingJson.Customers.length : 0;
+  const tripPrice = parseFloat(bookingJson.Trip.price);
+  const totalCost = tripPrice * memberCount;
+  const paidAmount = parseFloat(bookingJson.amount);
+  const remainingAmount = Math.max(0, totalCost - paidAmount);
+
+  return {
+    ...bookingJson,
+    totalCost,
+    paidAmount,
+    remainingAmount,
+  };
 };
 
 const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
@@ -205,6 +224,7 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
       bookingId: booking.id,
       amount: paymentAmount,
       method: paymentMethod,
+      paymentType: paymentType, // Pass paymentType (balance/custom)
       transactionId: transactionId || null,
       status: 'completed',
       paymentDate: new Date(),

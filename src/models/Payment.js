@@ -16,6 +16,11 @@ const Payment = sequelize.define('Payment', {
     type: DataTypes.STRING, // e.g., 'credit_card', 'upi'
     allowNull: false,
   },
+  paymentType: {
+    type: DataTypes.STRING, // e.g., 'advance', 'full', 'balance', 'custom'
+    allowNull: false,
+    defaultValue: 'custom', // Default fallback
+  },
   status: {
     type: DataTypes.ENUM(...Object.values(PAYMENT_STATUS)),
     defaultValue: PAYMENT_STATUS.PENDING,
