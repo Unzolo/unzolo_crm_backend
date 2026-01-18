@@ -55,9 +55,46 @@ const resendOtp = async (req, res) => {
   }
 };
 
+const getProfile = async (req, res) => {
+  try {
+    const partner = await authService.getProfile(req.user.id);
+    // User requested "company name (partnername), email and phone number"
+    // We return the whole object, frontend can pick. Or we can structure strictly.
+    // Let's return the full profile for flexibility.
+    return success(res, partner);
+  } catch (err) {
+    return error(res, err.message, 404);
+  }
+};
+
+
+
+const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const result = await authService.changePassword(req.user.id, oldPassword, newPassword);
+    return success(res, result);
+  } catch (err) {
+    if (err.message === 'Incorrect old password') {
+        return error(res, err.message, 400);
+    }
+    return error(res, err.message, 500);
+  }
+};
+
+const logout = async (req, res) => {
+    // Since we are using JWT (stateless), the server doesn't need to do much.
+    // The client should remove the token.
+    // Optionally, we could blacklist the token here if we had a blacklist mechanism.
+    return success(res, null, 'Logged out successfully');
+};
+
 module.exports = {
   register,
   login,
   verifyOtp,
   resendOtp,
+  getProfile,
+  changePassword,
+  logout,
 };

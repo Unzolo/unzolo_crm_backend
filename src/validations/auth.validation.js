@@ -21,9 +21,16 @@ const resendOtp = Joi.object({
   email: Joi.string().email().required(),
 });
 
+const changePassword = Joi.object({
+  oldPassword: Joi.string().required(),
+  newPassword: Joi.string().min(6).required(),
+});
+
 module.exports = {
   register,
   login,
   verifyOtp,
+  verifyOtp,
   resendOtp,
+  changePassword,
 };

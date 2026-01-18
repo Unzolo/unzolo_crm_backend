@@ -101,9 +101,36 @@ const login = async (email, password) => {
   return { partner, token };
 };
 
+const getProfile = async (id) => {
+  const partner = await Partner.findByPk(id);
+  if (!partner) {
+    throw new Error('Partner not found');
+  }
+  return partner;
+};
+
+const changePassword = async (userId, oldPassword, newPassword) => {
+  const partner = await Partner.findByPk(userId);
+  if (!partner) {
+    throw new Error('User not found');
+  }
+
+  const isMatch = await partner.validatePassword(oldPassword);
+  if (!isMatch) {
+    throw new Error('Incorrect old password');
+  }
+
+  partner.password = newPassword;
+  await partner.save(); // Hook will hash it
+
+  return { message: 'Password updated successfully' };
+};
+
 module.exports = {
   register,
   login,
   verifyOtp,
   resendOtp,
+  getProfile,
+  changePassword,
 };
