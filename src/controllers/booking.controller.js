@@ -12,7 +12,8 @@ const createBooking = async (req, res) => {
 
 const getBookings = async (req, res) => {
   try {
-    const bookings = await bookingService.getBookings(req.user.id);
+    const { tripId } = req.query;
+    const bookings = await bookingService.getBookings(req.user.id, tripId);
     return success(res, bookings);
   } catch (err) {
     return error(res, err.message);
@@ -27,10 +28,21 @@ const getBookingById = async (req, res) => {
   } catch (err) {
     return error(res, err.message);
   }
+
+};
+
+const addPaymentToBooking = async (req, res) => {
+  try {
+    const payment = await bookingService.addPaymentToBooking(req.params.id, req.body, req.user.id);
+    return success(res, payment, 'Payment added successfully', 201);
+  } catch (err) {
+    return error(res, err.message);
+  }
 };
 
 module.exports = {
   createBooking,
   getBookings,
   getBookingById,
+  addPaymentToBooking,
 };

@@ -1,4 +1,4 @@
-const { Booking, Trip, Customer, sequelize } = require('../models');
+const { Booking, Trip, Customer, Payment, sequelize } = require('../models');
 
 
 const createBooking = async (data, partnerId) => {
@@ -69,22 +69,84 @@ const createBooking = async (data, partnerId) => {
   }
 };
 
-const getBookings = async (partnerId) => {
-  return await Booking.findAll({
-    where: { partnerId },
+const getBookings = async (partnerId, tripId = null) => {
+  const whereClause = { partnerId };
+  if (tripId) {
+    whereClause.tripId = tripId;
+  }
+
+  const bookings = await Booking.findAll({
+    where: whereClause,
     include: [
       { 
         model: Trip,
-        attributes: ['title', 'destination', 'startDate']
+        attributes: ['id', 'title', 'destination', 'startDate', 'price', 'advanceAmount']
       },
       {
         model: Customer,
-        where: { isPrimary: true },
-        required: false, // In case legacy data doesn't have customers (though we just refactored)
+        required: false,
       }
     ],
     order: [['createdAt', 'DESC']],
   });
+
+  const formattedBookings = bookings.map(booking => {
+    const bookingJson = booking.toJSON();
+    const memberCount = bookingJson.Customers ? bookingJson.Customers.length : 0;
+    const tripPrice = parseFloat(bookingJson.Trip.price);
+    const advanceAmount = parseFloat(bookingJson.Trip.advanceAmount);
+    const totalCost = tripPrice * memberCount;
+    const paidAmount = parseFloat(bookingJson.amount);
+    
+    return {
+      ...bookingJson,
+      totalCost,
+      paidAmount,
+      memberCount,
+      tripAdvanceAmount: advanceAmount,
+    };
+  });
+
+  if (tripId) {
+    let totalCustomers = 0;
+    let fullyPaidCustomers = 0;
+    let advancePaidCustomers = 0;
+    let totalCollected = 0;
+    let totalPending = 0;
+
+    formattedBookings.forEach(b => {
+      totalCustomers += b.memberCount;
+      totalCollected += b.paidAmount;
+      
+      const pending = b.totalCost - b.paidAmount;
+      totalPending += Math.max(0, pending); // Ensure no negative pending
+
+      // Payment Status Counts (Member-wise)
+      if (b.paidAmount >= b.totalCost - 0.01) { // Tolerance for float precision
+        fullyPaidCustomers += b.memberCount;
+      } else {
+         // Check if they paid at least the advance amount per person
+         const requiredAdvance = b.tripAdvanceAmount * b.memberCount;
+         if (b.paidAmount >= requiredAdvance - 0.01) {
+             advancePaidCustomers += b.memberCount;
+         }
+         // Else: Paid less than advance (not requested to track specifically)
+      }
+    });
+
+    return {
+      summary: {
+        totalCustomers,
+        fullyPaidCustomers,
+        advancePaidCustomers,
+        totalCollected,
+        totalPending
+      },
+      bookings: formattedBookings
+    };
+  }
+
+  return formattedBookings;
 };
 
 const getBookingById = async (id, partnerId) => {
@@ -101,8 +163,72 @@ const getBookingById = async (id, partnerId) => {
   return booking;
 };
 
+const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { amount: inputAmount, paymentType, paymentMethod, transactionId } = paymentData;
+
+    // 1. Check if booking exists and belongs to partner, include Trip and Customer for calculation
+    const booking = await Booking.findOne({
+      where: { id: bookingId, partnerId },
+      include: [
+        { model: Trip },
+        { model: Customer }
+      ],
+      transaction,
+    });
+
+    if (!booking) {
+      throw new Error('Booking not found or access denied');
+    }
+
+    // 2. Calculate Payment Amount
+    let paymentAmount = 0;
+
+    if (paymentType === 'balance') {
+      const tripPrice = parseFloat(booking.Trip.price);
+      const memberCount = booking.Customers.length;
+      const totalTripCost = tripPrice * memberCount;
+      const currentPaid = parseFloat(booking.amount);
+      
+      paymentAmount = totalTripCost - currentPaid;
+      
+      if (paymentAmount <= 0) {
+         throw new Error('Booking is already fully paid or overpaid');
+      }
+    } else if (paymentType === 'custom') {
+      paymentAmount = parseFloat(inputAmount);
+    }
+
+    // 3. Create Payment Record
+    const payment = await Payment.create({
+      bookingId: booking.id,
+      amount: paymentAmount,
+      method: paymentMethod,
+      transactionId: transactionId || null,
+      status: 'completed',
+      paymentDate: new Date(),
+    }, { transaction });
+
+    // 4. Update Booking Amount (Total Paid)
+    const newTotalAmount = parseFloat(booking.amount) + paymentAmount;
+    
+    await booking.update({
+      amount: newTotalAmount
+    }, { transaction });
+
+    await transaction.commit();
+
+    return payment;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
   getBookingById,
+  addPaymentToBooking,
 };

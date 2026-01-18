@@ -37,6 +37,18 @@ const createBooking = Joi.object({
   }),
 });
 
+const addPayment = Joi.object({
+  paymentType: Joi.string().valid('balance', 'custom').required(),
+  amount: Joi.number().min(0).when('paymentType', {
+    is: 'custom',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
+  paymentMethod: Joi.string().required(),
+  transactionId: Joi.string().optional(),
+});
+
 module.exports = {
   createBooking,
+  addPayment,
 };
