@@ -1,9 +1,27 @@
 const bookingService = require('../services/booking.service');
 const { success, error } = require('../utils/response');
 
+const { uploadToCloudinary } = require('../utils/cloudinary');
+
 const createBooking = async (req, res) => {
   try {
-    const booking = await bookingService.createBooking(req.body, req.user.id);
+    console.log('--- Debug: Create Booking ---');
+    console.log('req.file:', req.file);
+    console.log('req.body:', req.body);
+
+    let screenshotUrl = null;
+    if (req.file) {
+      console.log('File detected, uploading to Cloudinary...');
+      screenshotUrl = await uploadToCloudinary(req.file.path);
+      console.log('Cloudinary URL:', screenshotUrl);
+    } else {
+      console.log('No file detected in req.file');
+    }
+    
+    // Merge screenshotUrl into body
+    const bookingData = { ...req.body, screenshotUrl };
+
+    const booking = await bookingService.createBooking(bookingData, req.user.id);
     return success(res, booking, 'Booking created successfully', 201);
   } catch (err) {
     return error(res, err.message);
@@ -28,12 +46,24 @@ const getBookingById = async (req, res) => {
   } catch (err) {
     return error(res, err.message);
   }
-
 };
 
 const addPaymentToBooking = async (req, res) => {
   try {
-    const payment = await bookingService.addPaymentToBooking(req.params.id, req.body, req.user.id);
+    console.log('--- Debug: Add Payment ---');
+    console.log('req.file:', req.file);
+    
+    let screenshotUrl = null;
+    if (req.file) {
+      console.log('File detected, uploading to Cloudinary...');
+      screenshotUrl = await uploadToCloudinary(req.file.path);
+      console.log('Cloudinary URL:', screenshotUrl);
+    } else {
+       console.log('No file detected');
+    }
+
+    const paymentData = { ...req.body, screenshotUrl };
+    const payment = await bookingService.addPaymentToBooking(req.params.id, paymentData, req.user.id);
     return success(res, payment, 'Payment added successfully', 201);
   } catch (err) {
     return error(res, err.message);

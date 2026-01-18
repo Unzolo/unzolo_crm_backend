@@ -4,7 +4,7 @@ const { Booking, Trip, Customer, Payment, sequelize } = require('../models');
 const createBooking = async (data, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { tripId, members, paymentType, customAmount, amount, paymentMethod, transactionId } = data;
+    const { tripId, members, paymentType, customAmount, amount, paymentMethod, transactionId, screenshotUrl } = data;
 
     // Check if trip exists and belongs to partner
     const trip = await Trip.findOne({ 
@@ -51,6 +51,7 @@ const createBooking = async (data, partnerId) => {
       method: paymentMethod,
       paymentType: paymentType, // Pass paymentType (full/advance)
       transactionId: transactionId || null,
+      screenshotUrl: screenshotUrl || null,
       status: 'completed', // Assuming initial payment is successful if recording it here
       paymentDate: new Date(),
     }, { transaction });
@@ -61,7 +62,8 @@ const createBooking = async (data, partnerId) => {
     return await Booking.findByPk(booking.id, {
       include: [
         { model: Customer },
-        { model: Trip }
+        { model: Trip },
+        { model: Payment }
       ]
     });
   } catch (error) {
@@ -185,7 +187,7 @@ const getBookingById = async (id, partnerId) => {
 const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { amount: inputAmount, paymentType, paymentMethod, transactionId } = paymentData;
+    const { amount: inputAmount, paymentType, paymentMethod, transactionId, screenshotUrl } = paymentData;
 
     // 1. Check if booking exists and belongs to partner, include Trip and Customer for calculation
     const booking = await Booking.findOne({
@@ -226,6 +228,7 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
       method: paymentMethod,
       paymentType: paymentType, // Pass paymentType (balance/custom)
       transactionId: transactionId || null,
+      screenshotUrl: screenshotUrl || null,
       status: 'completed',
       paymentDate: new Date(),
     }, { transaction });
