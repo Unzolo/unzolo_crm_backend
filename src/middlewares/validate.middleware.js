@@ -1,6 +1,7 @@
 const { error } = require('../utils/response');
 
 const validate = (schema) => (req, res, next) => {
+  if (!req.body) req.body = {};
   const { error: validationError } = schema.validate(req.body, { abortEarly: false });
 
   if (validationError) {
