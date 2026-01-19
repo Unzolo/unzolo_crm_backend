@@ -35,6 +35,26 @@ const sendOTP = async (to, otp) => {
   }
 };
 
+const sendPasswordResetEmail = async (to, resetUrl) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: 'Password Reset Request',
+    text: `You are receiving this email because you (or someone else) have requested the reset of a password. Please click on the following link, or paste this into your browser to complete the process: ${resetUrl}`,
+    html: `<p>You are receiving this email because you (or someone else) have requested the reset of a password.</p><p>Please click on the following link, or paste this into your browser to complete the process:</p><a href="${resetUrl}">${resetUrl}</a><p>If you did not request this, please ignore this email and your password will remain unchanged.</p>`,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Reset email sent: %s', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending reset email:', error);
+    return false;
+  }
+};
+
 module.exports = {
   sendOTP,
+  sendPasswordResetEmail,
 };

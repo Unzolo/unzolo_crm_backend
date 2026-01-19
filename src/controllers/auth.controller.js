@@ -89,6 +89,32 @@ const logout = async (req, res) => {
     return success(res, null, 'Logged out successfully');
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+    return success(res, result, 'Reset email sent');
+  } catch (err) {
+    if (err.message === 'User not found') {
+      return error(res, err.message, 404);
+    }
+    return error(res, err.message, 500);
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    const result = await authService.resetPassword(token, newPassword);
+    return success(res, result, 'Password reset successful');
+  } catch (err) {
+    if (err.message === 'Invalid or expired token') {
+      return error(res, err.message, 400);
+    }
+    return error(res, err.message, 500);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -97,4 +123,6 @@ module.exports = {
   getProfile,
   changePassword,
   logout,
+  forgotPassword,
+  resetPassword,
 };

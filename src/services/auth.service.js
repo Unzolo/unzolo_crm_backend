@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const { Partner } = require('../models');
 const { generateToken } = require('../utils/jwt');
+const { sendPasswordResetEmail } = require('../utils/email');
 
 const register = async (data) => {
   const { email } = data;
@@ -126,6 +128,71 @@ const changePassword = async (userId, oldPassword, newPassword) => {
   return { message: 'Password updated successfully' };
 };
 
+const forgotPassword = async (email) => {
+  const partner = await Partner.findOne({ where: { email } });
+
+  if (!partner) {
+    throw new Error('User not found');
+  }
+
+  // Create reset token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Hash token and set to resetPasswordToken field
+  partner.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set expire (10 minutes)
+  partner.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+  await partner.save();
+
+  // Create reset url
+  // Note: In production, this should be the frontend URL
+  const resetUrl = `https://unzolo.com/reset-password?token=${resetToken}`;
+
+  try {
+    await sendPasswordResetEmail(partner.email, resetUrl);
+    return { message: 'Email sent' };
+  } catch (err) {
+    partner.resetPasswordToken = null;
+    partner.resetPasswordExpire = null;
+    await partner.save();
+    throw new Error('Email could not be sent');
+  }
+};
+
+const resetPassword = async (resetToken, newPassword) => {
+  // Get hashed token
+  const resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  const partner = await Partner.findOne({
+    where: {
+      resetPasswordToken,
+      resetPasswordExpire: {
+        [require('sequelize').Op.gt]: Date.now(),
+      },
+    },
+  });
+
+  if (!partner) {
+    throw new Error('Invalid or expired token');
+  }
+
+  // Set new password
+  partner.password = newPassword;
+  partner.resetPasswordToken = null;
+  partner.resetPasswordExpire = null;
+  await partner.save();
+
+  return { message: 'Password reset successful' };
+};
+
 module.exports = {
   register,
   login,
@@ -133,4 +200,6 @@ module.exports = {
   resendOtp,
   getProfile,
   changePassword,
+  forgotPassword,
+  resetPassword,
 };

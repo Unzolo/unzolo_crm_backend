@@ -40,6 +40,14 @@ const Partner = sequelize.define('Partner', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  resetPasswordToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  resetPasswordExpire: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   tableName: 'partners',
   timestamps: true,
@@ -66,6 +74,8 @@ Partner.prototype.toJSON = function () {
   delete values.password;
   delete values.otp;
   delete values.otpExpires;
+  delete values.resetPasswordToken;
+  delete values.resetPasswordExpire;
   return values;
 };
 
