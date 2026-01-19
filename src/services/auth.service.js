@@ -151,7 +151,7 @@ const forgotPassword = async (email) => {
 
   // Create reset url
   // Note: In production, this should be the frontend URL
-  const resetUrl = `https://unzolo.com/reset-password?token=${resetToken}`;
+  const resetUrl = `https://crmportal.unzolo.com/reset-password?token=${resetToken}`;
 
   try {
     await sendPasswordResetEmail(partner.email, resetUrl);
