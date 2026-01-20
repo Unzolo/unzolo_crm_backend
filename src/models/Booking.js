@@ -13,6 +13,14 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },
+  memberCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
+  },
+  preferredDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
   status: {
     type: DataTypes.ENUM(...Object.values(BOOKING_STATUS)),
     defaultValue: BOOKING_STATUS.PENDING,

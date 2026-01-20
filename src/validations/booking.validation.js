@@ -8,6 +8,8 @@ const createBooking = Joi.object({
   paymentMethod: Joi.string().required(),
   transactionId: Joi.string().optional(),
   paymentDate: Joi.date().iso().required(), // Enforce payment date
+  memberCount: Joi.number().integer().min(1).optional(),
+  preferredDate: Joi.date().iso().optional().allow(null),
   members: Joi.array().items(
     Joi.object({
       name: Joi.string().required(),

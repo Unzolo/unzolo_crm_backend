@@ -7,9 +7,11 @@ const createTrip = Joi.object({
   destination: Joi.string().required(),
   advanceAmount: Joi.number().min(0).optional(),
   type: Joi.string().valid('package', 'camp').optional(),
-  startDate: Joi.date().iso().required(),
-  endDate: Joi.date().iso().min(Joi.ref('startDate')).required(),
+  startDate: Joi.date().iso().optional().allow(null),
+  endDate: Joi.date().iso().min(Joi.ref('startDate')).optional().allow(null),
   capacity: Joi.number().integer().min(1).optional(),
+  groupSize: Joi.string().optional().allow(''),
+  category: Joi.string().optional().allow(''),
 });
 
 const updateTrip = Joi.object({
@@ -19,9 +21,11 @@ const updateTrip = Joi.object({
   destination: Joi.string().optional(),
   advanceAmount: Joi.number().min(0).optional(),
   type: Joi.string().valid('package', 'camp').optional(),
-  startDate: Joi.date().iso().optional(),
-  endDate: Joi.date().iso().min(Joi.ref('startDate')).optional(),
+  startDate: Joi.date().iso().optional().allow(null),
+  endDate: Joi.date().iso().min(Joi.ref('startDate')).optional().allow(null),
   capacity: Joi.number().integer().min(1).optional(),
+  groupSize: Joi.string().optional().allow(''),
+  category: Joi.string().optional().allow(''),
 });
 
 module.exports = {

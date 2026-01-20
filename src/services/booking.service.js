@@ -5,7 +5,7 @@ const { BOOKING_STATUS } = require('../utils/constants'); // Import constants
 const createBooking = async (data, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl } = data;
+    const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl, memberCount: inputMemberCount, preferredDate } = data;
 
     // Check if trip exists and belongs to partner
     const trip = await Trip.findOne({
@@ -18,7 +18,8 @@ const createBooking = async (data, partnerId) => {
 
     // Calculate Amount
     let totalAmount = 0;
-    const memberCount = members.length;
+    // For packages, use inputMemberCount if provided, otherwise members.length
+    const memberCount = inputMemberCount ? parseInt(inputMemberCount) : members.length;
 
     if (paymentType === 'full') {
       totalAmount = parseFloat(trip.price) * memberCount;
@@ -34,6 +35,8 @@ const createBooking = async (data, partnerId) => {
       tripId,
       partnerId,
       amount: totalAmount,
+      memberCount: memberCount,
+      preferredDate: preferredDate || null,
       status: (totalAmount >= parseFloat(trip.price) * memberCount) ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.PENDING,
     }, { transaction });
 
@@ -100,11 +103,13 @@ const getBookings = async (partnerId, tripId = null) => {
       const tripPrice = parseFloat(bookingJson.Trip.price);
       
       // Count ACTIVE members for cost calculation
-      const activeMembers = bookingJson.Customers.filter(c => c.status === 'active');
-      const activeMemberCount = activeMembers.length;
+      // For packages, if they haven't listed all members, we use the booking.memberCount
+      // If some listed members are cancelled, we should deduct them from the total count
+      const cancelledMemberCount = bookingJson.Customers.filter(c => c.status === 'cancelled').length;
+      const effectiveMemberCount = Math.max(0, bookingJson.memberCount - cancelledMemberCount);
       
       // Total Cost based on ACTIVE members
-      const totalCost = tripPrice * activeMemberCount;
+      const totalCost = tripPrice * effectiveMemberCount;
       
       const paidAmount = parseFloat(bookingJson.amount); // Net Paid (from DB)
     
@@ -112,8 +117,8 @@ const getBookings = async (partnerId, tripId = null) => {
         ...bookingJson,
         totalCost,
         paidAmount,
-        activeMemberCount, // Useful for frontend
-        memberCount: bookingJson.Customers.length, // Total members (historical)
+        activeMemberCount: effectiveMemberCount, // Useful for frontend
+        memberCount: bookingJson.memberCount, // Total members (historical)
         tripAdvanceAmount: parseFloat(bookingJson.Trip.advanceAmount)
       };
     });
@@ -177,8 +182,9 @@ const getBookingById = async (id, partnerId) => {
     const tripPrice = parseFloat(bookingJson.Trip.price);
     
     // 1. Calculate Active Cost
-    const activeMembers = bookingJson.Customers.filter(c => c.status === 'active');
-    const totalCost = tripPrice * activeMembers.length;
+    const cancelledMemberCount = bookingJson.Customers.filter(c => c.status === 'cancelled').length;
+    const effectiveMemberCount = Math.max(0, bookingJson.memberCount - cancelledMemberCount);
+    const totalCost = tripPrice * effectiveMemberCount;
 
     // 2. Calculate Gross Paid & Refund from Payments Array
     // (Since booking.amount is Net, we derive Gross from payments for display if requested)
@@ -237,7 +243,7 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
 
     if (paymentType === 'balance') {
       const tripPrice = parseFloat(booking.Trip.price);
-      const memberCount = booking.Customers.length;
+      const memberCount = booking.memberCount;
       const totalTripCost = tripPrice * memberCount;
       const currentPaid = parseFloat(booking.amount);
 
@@ -272,14 +278,14 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
     // 5. Check if Fully Paid -> Update Status
     // Re-fetch or calculate cost. We have Trip and Customers.
     const tripPrice = parseFloat(booking.Trip.price);
-    // Count ONLY active members for cost threshold (logic decision: if you cancel member, cost goes down, so you might become fully paid)
-    const activeMembers = booking.Customers.filter(c => c.status === 'active'); 
-    const totalCost = tripPrice * activeMembers.length;
+    // Count ONLY active members for cost threshold
+    const cancelledMemberCount = booking.Customers.filter(c => c.status === 'cancelled').length;
+    const effectiveMemberCount = Math.max(0, booking.memberCount - cancelledMemberCount);
+    const totalCost = tripPrice * effectiveMemberCount;
 
     // Use tolerance for float comparison
     if (newTotalAmount >= totalCost - 0.01 && booking.status !== BOOKING_STATUS.CANCELLED && booking.status !== BOOKING_STATUS.PARTIAL_CANCELLED) {
-        // Only auto-confirm if not cancelled/partial (or should we? User said "unless they cancel it")
-        // If it's partial cancelled, we probably shouldn't override that status with 'confirmed'.
+        // Only auto-confirm if not cancelled/partial
         if (booking.status === BOOKING_STATUS.PENDING) {
              await booking.update({ status: BOOKING_STATUS.CONFIRMED }, { transaction });
         }

@@ -35,11 +35,19 @@ const Trip = sequelize.define('Trip', {
   },
   startDate: {
     type: DataTypes.DATE,
-    allowNull: false,
+    allowNull: true,
   },
   endDate: {
     type: DataTypes.DATE,
-    allowNull: false,
+    allowNull: true,
+  },
+  groupSize: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  category: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   capacity: {
     type: DataTypes.INTEGER,
