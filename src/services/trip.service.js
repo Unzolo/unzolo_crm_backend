@@ -1,4 +1,4 @@
-const { Trip } = require('../models');
+const { Trip, sequelize } = require('../models');
 
 const createTrip = async (data, partnerId) => {
   // data contains title, description, price, destination, advanceAmount, type, startDate, endDate, capacity
@@ -6,11 +6,39 @@ const createTrip = async (data, partnerId) => {
 };
 
 const getTrips = async (partnerId) => {
-  return await Trip.findAll({ where: { partnerId } });
+  return await Trip.findAll({
+    where: { partnerId },
+    attributes: {
+      include: [
+        [
+          sequelize.literal(`(
+            SELECT COALESCE(SUM(amount), 0)
+            FROM expenses AS Expense
+            WHERE Expense.tripId = Trip.id
+          )`),
+          'totalExpenses'
+        ]
+      ]
+    }
+  });
 };
 
 const getTripById = async (id, partnerId) => {
-  return await Trip.findOne({ where: { id, partnerId } });
+  return await Trip.findOne({
+    where: { id, partnerId },
+    attributes: {
+      include: [
+        [
+          sequelize.literal(`(
+            SELECT COALESCE(SUM(amount), 0)
+            FROM expenses AS Expense
+            WHERE Expense.tripId = Trip.id
+          )`),
+          'totalExpenses'
+        ]
+      ]
+    }
+  });
 };
 
 const updateTrip = async (id, partnerId, data) => {
