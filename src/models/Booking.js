@@ -21,6 +21,10 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  totalPackagePrice: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
   status: {
     type: DataTypes.ENUM(...Object.values(BOOKING_STATUS)),
     defaultValue: BOOKING_STATUS.PENDING,

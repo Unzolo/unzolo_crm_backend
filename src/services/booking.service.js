@@ -5,7 +5,7 @@ const { BOOKING_STATUS } = require('../utils/constants'); // Import constants
 const createBooking = async (data, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl, memberCount: inputMemberCount, preferredDate } = data;
+    const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl, memberCount: inputMemberCount, preferredDate, totalPackagePrice } = data;
 
     // Check if trip exists and belongs to partner
     const trip = await Trip.findOne({
@@ -37,7 +37,8 @@ const createBooking = async (data, partnerId) => {
       amount: totalAmount,
       memberCount: memberCount,
       preferredDate: preferredDate || null,
-      status: (totalAmount >= parseFloat(trip.price) * memberCount) ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.PENDING,
+      totalPackagePrice: totalPackagePrice || null,
+      status: (totalAmount >= (totalPackagePrice ? parseFloat(totalPackagePrice) : parseFloat(trip.price) * memberCount)) ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.PENDING,
     }, { transaction });
 
     // Create Customers
@@ -109,7 +110,12 @@ const getBookings = async (partnerId, tripId = null) => {
       const effectiveMemberCount = Math.max(0, bookingJson.memberCount - cancelledMemberCount);
       
       // Total Cost based on ACTIVE members
-      const totalCost = tripPrice * effectiveMemberCount;
+      let totalCost = 0;
+      if (bookingJson.totalPackagePrice) {
+        totalCost = parseFloat(bookingJson.totalPackagePrice);
+      } else {
+        totalCost = tripPrice * effectiveMemberCount;
+      }
       
       const paidAmount = parseFloat(bookingJson.amount); // Net Paid (from DB)
     
@@ -184,7 +190,12 @@ const getBookingById = async (id, partnerId) => {
     // 1. Calculate Active Cost
     const cancelledMemberCount = bookingJson.Customers.filter(c => c.status === 'cancelled').length;
     const effectiveMemberCount = Math.max(0, bookingJson.memberCount - cancelledMemberCount);
-    const totalCost = tripPrice * effectiveMemberCount;
+    let totalCost = 0;
+    if (bookingJson.totalPackagePrice) {
+        totalCost = parseFloat(bookingJson.totalPackagePrice);
+    } else {
+        totalCost = tripPrice * effectiveMemberCount;
+    }
 
     // 2. Calculate Gross Paid & Refund from Payments Array
     // (Since booking.amount is Net, we derive Gross from payments for display if requested)
@@ -215,7 +226,9 @@ const getBookingById = async (id, partnerId) => {
       paidAmount: grossPaid, // Historical Total Paid (as requested)
       refundAmount,      // Total Refunded
       netPaidAmount: netPaid, // Money currently held
-      remainingAmount    // Positive = Due, Negative = Surplus/Refundable
+      remainingAmount,    // Positive = Due, Negative = Surplus/Refundable
+      activeMemberCount: effectiveMemberCount,
+      totalMemberCount: bookingJson.memberCount
     };
 };
 
@@ -281,7 +294,12 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
     // Count ONLY active members for cost threshold
     const cancelledMemberCount = booking.Customers.filter(c => c.status === 'cancelled').length;
     const effectiveMemberCount = Math.max(0, booking.memberCount - cancelledMemberCount);
-    const totalCost = tripPrice * effectiveMemberCount;
+    let totalCost = 0;
+    if (booking.totalPackagePrice) {
+        totalCost = parseFloat(booking.totalPackagePrice);
+    } else {
+        totalCost = tripPrice * effectiveMemberCount;
+    }
 
     // Use tolerance for float comparison
     if (newTotalAmount >= totalCost - 0.01 && booking.status !== BOOKING_STATUS.CANCELLED && booking.status !== BOOKING_STATUS.PARTIAL_CANCELLED) {
