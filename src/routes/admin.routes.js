@@ -12,5 +12,7 @@ router.get('/stats', adminController.getGlobalStats);
 router.get('/partners', adminController.getAllPartners);
 router.get('/partners/:id', adminController.getPartnerDetails);
 router.patch('/partners/:id/status', adminController.updatePartnerStatus);
+router.get('/trips/:id/bookings', adminController.getTripBookings);
+router.get('/trips', adminController.getAllTrips);
 
 module.exports = router;
