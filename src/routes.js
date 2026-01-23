@@ -12,10 +12,8 @@ const adminRoutes = require('./routes/admin.routes');
 const systemRoutes = require('./routes/system.routes');
 const checkMaintenance = require('./middlewares/maintenance.middleware');
 
-router.get('/system/maintenance', (req, res, next) => {
-    // Direct bypass for this specific route
-    next();
-}, systemRoutes);
+// Public system routes (must be before maintenance check)
+router.use('/system', systemRoutes);
 
 router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
