@@ -66,6 +66,25 @@ const getBookingDetails = async (req, res) => {
     }
 };
 
+const getMaintenanceMode = async (req, res) => {
+    try {
+        const isEnabled = await adminService.getMaintenanceMode();
+        return success(res, { maintenanceMode: isEnabled });
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
+const toggleMaintenanceMode = async (req, res) => {
+    try {
+        const { isEnabled } = req.body;
+        const result = await adminService.toggleMaintenanceMode(isEnabled);
+        return success(res, { maintenanceMode: result }, result ? 'Maintenance mode enabled' : 'Maintenance mode disabled');
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
@@ -73,5 +92,7 @@ module.exports = {
     getGlobalStats,
     getTripBookings,
     getAllTrips,
-    getBookingDetails
+    getBookingDetails,
+    getMaintenanceMode,
+    toggleMaintenanceMode
 };

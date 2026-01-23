@@ -16,4 +16,8 @@ router.get('/trips/:id/bookings', adminController.getTripBookings);
 router.get('/trips', adminController.getAllTrips);
 router.get('/bookings/:id', adminController.getBookingDetails);
 
+// System Settings
+router.get('/settings/maintenance', adminController.getMaintenanceMode);
+router.post('/settings/maintenance', adminController.toggleMaintenanceMode);
+
 module.exports = router;

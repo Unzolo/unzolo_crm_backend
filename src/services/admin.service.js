@@ -204,5 +204,22 @@ module.exports = {
     getGlobalStats,
     getTripBookings,
     getAllTrips,
-    getBookingDetails
+    getBookingDetails,
+    toggleMaintenanceMode,
+    getMaintenanceMode
 };
+
+async function toggleMaintenanceMode(isEnabled) {
+    const [setting] = await SystemSetting.findOrCreate({
+        where: { key: 'maintenance_mode' },
+        defaults: { value: 'false', description: 'Enable/Disable maintenance mode for normal users' }
+    });
+    
+    await setting.update({ value: isEnabled ? 'true' : 'false' });
+    return setting.value === 'true';
+}
+
+async function getMaintenanceMode() {
+    const setting = await SystemSetting.findOne({ where: { key: 'maintenance_mode' } });
+    return setting ? setting.value === 'true' : false;
+}

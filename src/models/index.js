@@ -6,6 +6,7 @@ const Payment = require('./Payment');
 const Customer = require('./Customer');
 const Expense = require('./Expense');
 const Enquiry = require('./Enquiry');
+const SystemSetting = require('./SystemSetting');
 
 // Partner <-> Trip
 Partner.hasMany(Trip, { foreignKey: 'partnerId' });
@@ -44,4 +45,5 @@ module.exports = {
   Customer,
   Expense,
   Enquiry,
+  SystemSetting,
 };
