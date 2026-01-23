@@ -25,6 +25,9 @@ const login = async (req, res) => {
     if (err.message === 'Invalid email or password') {
         return error(res, err.message, 401);
     }
+    if (err.message === 'Your account has been blocked. Please contact admin.') {
+        return error(res, err.message, 403);
+    }
     return error(res, err.message, 500);
   }
 };
@@ -37,6 +40,9 @@ const verifyOtp = async (req, res) => {
   } catch (err) {
     if (err.message === 'User not found' || err.message === 'Invalid OTP' || err.message === 'OTP expired' || err.message === 'User already verified') {
       return error(res, err.message, 400); 
+    }
+    if (err.message === 'Your account has been blocked. Please contact admin.') {
+      return error(res, err.message, 403);
     }
     return error(res, err.message, 500);
   }
@@ -97,6 +103,9 @@ const forgotPassword = async (req, res) => {
   } catch (err) {
     if (err.message === 'User not found') {
       return error(res, err.message, 404);
+    }
+    if (err.message === 'Your account has been blocked. Please contact admin.') {
+      return error(res, err.message, 403);
     }
     return error(res, err.message, 500);
   }

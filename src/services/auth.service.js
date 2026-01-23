@@ -40,6 +40,10 @@ const verifyOtp = async (email, otp) => {
     throw new Error('User already verified');
   }
 
+  if (partner.status === 'blocked') {
+    throw new Error('Your account has been blocked. Please contact admin.');
+  }
+
   if (partner.otp !== otp) {
     throw new Error('Invalid OTP');
   }
@@ -94,6 +98,10 @@ const login = async (email, password) => {
     throw new Error('Account not verified. Please verify OTP.');
   }
 
+  if (partner.status === 'blocked') {
+    throw new Error('Your account has been blocked. Please contact admin.');
+  }
+
   const isMatch = await partner.validatePassword(password);
   if (!isMatch) {
     throw new Error('Invalid email or password');
@@ -133,6 +141,10 @@ const forgotPassword = async (email) => {
 
   if (!partner) {
     throw new Error('User not found');
+  }
+
+  if (partner.status === 'blocked') {
+    throw new Error('Your account has been blocked. Please contact admin.');
   }
 
   // Create reset token
