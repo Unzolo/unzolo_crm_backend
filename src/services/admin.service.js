@@ -3,6 +3,7 @@ const { Partner, Trip, Booking, Payment, Customer, Enquiry } = require('../model
 const getAllPartners = async () => {
     return await Partner.findAll({
         attributes: { exclude: ['password', 'otp', 'otpExpires', 'resetPasswordToken', 'resetPasswordExpire'] },
+        include: [{ model: Trip, attributes: ['id'] }],
         order: [['createdAt', 'DESC']]
     });
 };
