@@ -48,6 +48,10 @@ const Partner = sequelize.define('Partner', {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  status: {
+    type: DataTypes.ENUM('active', 'inactive', 'blocked'),
+    defaultValue: 'active',
+  },
 }, {
   tableName: 'partners',
   timestamps: true,

@@ -8,6 +8,7 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const expenseRoutes = require('./routes/expense.routes');
 const enquiryRoutes = require('./routes/enquiry.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 router.use('/auth', authRoutes);
 router.use('/trips', tripRoutes);
@@ -16,6 +17,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/enquiries', enquiryRoutes);
+router.use('/admin', adminRoutes);
 
 module.exports = router;
-
