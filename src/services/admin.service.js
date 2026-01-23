@@ -1,4 +1,4 @@
-const { Partner, Trip, Booking, Payment, Customer, Enquiry } = require('../models');
+const { Partner, Trip, Booking, Payment, Customer, Enquiry, SystemSetting } = require('../models');
 
 const getAllPartners = async () => {
     return await Partner.findAll({
