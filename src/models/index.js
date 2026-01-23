@@ -5,6 +5,7 @@ const Booking = require('./Booking');
 const Payment = require('./Payment');
 const Customer = require('./Customer');
 const Expense = require('./Expense');
+const Enquiry = require('./Enquiry');
 
 // Partner <-> Trip
 Partner.hasMany(Trip, { foreignKey: 'partnerId' });
@@ -30,6 +31,10 @@ Customer.belongsTo(Booking, { foreignKey: 'bookingId' });
 Trip.hasMany(Expense, { foreignKey: 'tripId' });
 Expense.belongsTo(Trip, { foreignKey: 'tripId' });
 
+// Partner <-> Enquiry
+Partner.hasMany(Enquiry, { foreignKey: 'partnerId' });
+Enquiry.belongsTo(Partner, { foreignKey: 'partnerId' });
+
 module.exports = {
   sequelize,
   Partner,
@@ -38,4 +43,5 @@ module.exports = {
   Payment,
   Customer,
   Expense,
+  Enquiry,
 };

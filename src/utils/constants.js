@@ -14,4 +14,11 @@ module.exports = {
     COMPLETED: 'completed',
     FAILED: 'failed',
   },
+  ENQUIRY_STATUS: {
+    HOT: 'hot',
+    WARM: 'warm',
+    COLD: 'cold',
+    CONVERTED: 'converted',
+    CANCELLED: 'cancelled',
+  },
 };
