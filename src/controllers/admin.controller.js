@@ -57,11 +57,21 @@ const getAllTrips = async (req, res) => {
     }
 };
 
+const getBookingDetails = async (req, res) => {
+    try {
+        const booking = await adminService.getBookingDetails(req.params.id);
+        return success(res, booking);
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
     updatePartnerStatus,
     getGlobalStats,
     getTripBookings,
-    getAllTrips
+    getAllTrips,
+    getBookingDetails
 };

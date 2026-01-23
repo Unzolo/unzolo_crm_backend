@@ -140,11 +140,69 @@ const getAllTrips = async () => {
     });
 };
 
+const getBookingDetails = async (bookingId) => {
+    const booking = await Booking.findByPk(bookingId, {
+        include: [
+            { model: Trip },
+            { model: Customer },
+            {
+                model: Payment,
+                separate: true,
+                order: [['paymentDate', 'DESC']]
+            }
+        ],
+    });
+
+    if (!booking) throw new Error('Booking not found');
+
+    const bookingJson = booking.toJSON();
+    const tripPrice = parseFloat(bookingJson.Trip.price);
+
+    const cancelledMemberCount = bookingJson.Customers.filter(c => c.status === 'cancelled').length;
+    const effectiveMemberCount = Math.max(0, bookingJson.memberCount - cancelledMemberCount);
+    
+    let totalCost = 0;
+    if (bookingJson.totalPackagePrice) {
+        totalCost = parseFloat(bookingJson.totalPackagePrice);
+    } else {
+        totalCost = tripPrice * effectiveMemberCount;
+    }
+
+    let grossPaid = 0;
+    let refundAmount = 0;
+
+    if (bookingJson.Payments) {
+        bookingJson.Payments.forEach(p => {
+            const amt = parseFloat(p.amount);
+            if (p.paymentType === 'refund') {
+                refundAmount += amt;
+            } else {
+                grossPaid += amt;
+            }
+        });
+    }
+
+    const netPaid = grossPaid - refundAmount;
+    const remainingAmount = totalCost - netPaid;
+
+    return {
+        ...bookingJson,
+        totalCost,
+        paidAmount: grossPaid,
+        refundAmount,
+        netPaidAmount: netPaid,
+        remainingAmount,
+        activeMemberCount: effectiveMemberCount,
+        totalMemberCount: bookingJson.memberCount
+    };
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
     updatePartnerStatus,
     getGlobalStats,
     getTripBookings,
-    getAllTrips
+    getAllTrips,
+    getBookingDetails
 };

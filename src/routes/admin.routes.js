@@ -14,5 +14,6 @@ router.get('/partners/:id', adminController.getPartnerDetails);
 router.patch('/partners/:id/status', adminController.updatePartnerStatus);
 router.get('/trips/:id/bookings', adminController.getTripBookings);
 router.get('/trips', adminController.getAllTrips);
+router.get('/bookings/:id', adminController.getBookingDetails);
 
 module.exports = router;
