@@ -242,7 +242,7 @@ const getBookingById = async (id, partnerId) => {
 const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { amount: inputAmount, paymentType, paymentMethod, paymentDate, transactionId, screenshotUrl } = paymentData;
+    const { amount: inputAmount, paymentType, paymentMethod, paymentDate, transactionId, screenshotUrl, concessionAmount: inputConcession } = paymentData;
 
     // 1. Check if booking exists and belongs to partner, include Trip and Customer for calculation
     const booking = await Booking.findOne({
@@ -274,8 +274,12 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
         totalTripCost = tripPrice * effectiveMemberCount;
       }
 
-      // Subtract concession
-      totalTripCost = Math.max(0, totalTripCost - (parseFloat(booking.concessionAmount) || 0));
+      // Subtract concession - Use updated one from request if provided, else use current
+      const finalConcession = (inputConcession !== undefined) ? 
+                              (inputConcession === "" ? 0 : parseFloat(inputConcession)) : 
+                              parseFloat(booking.concessionAmount);
+      
+      totalTripCost = Math.max(0, totalTripCost - (finalConcession || 0));
 
       const currentPaid = parseFloat(booking.amount);
 
@@ -300,12 +304,16 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
       paymentDate: paymentDate, // Use provided date
     }, { transaction });
 
-    // 4. Update Booking Amount (Total Paid) and Concession (if provided)
+    // 4. Update Booking Amount (Total Paid) and Concession
     const newTotalAmount = parseFloat(booking.amount) + paymentAmount;
     const updateData = { amount: newTotalAmount };
     
-    if (paymentData.concessionAmount !== undefined) {
-      updateData.concessionAmount = parseFloat(paymentData.concessionAmount);
+    let currentConcession = parseFloat(booking.concessionAmount) || 0;
+    if (inputConcession !== undefined) {
+      currentConcession = inputConcession === "" ? 0 : parseFloat(inputConcession);
+      if (!isNaN(currentConcession)) {
+        updateData.concessionAmount = currentConcession;
+      }
     }
 
     await booking.update(updateData, { transaction });
@@ -323,10 +331,8 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
         totalCost = tripPrice * effectiveMemberCount;
     }
 
-    // Subtract concession (use the one from database, which might have been updated just above)
-    // We re-fetch or use updated value. To be safe, let's use the possibly updated value.
-    const finalConcession = paymentData.concessionAmount !== undefined ? parseFloat(paymentData.concessionAmount) : parseFloat(booking.concessionAmount);
-    totalCost = Math.max(0, totalCost - (finalConcession || 0));
+    // Subtract concession (use the newly updated value)
+    totalCost = Math.max(0, totalCost - (currentConcession || 0));
 
     // Use tolerance for float comparison
     if (newTotalAmount >= totalCost - 0.01 && booking.status !== BOOKING_STATUS.CANCELLED && booking.status !== BOOKING_STATUS.PARTIAL_CANCELLED) {
