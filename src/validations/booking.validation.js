@@ -11,6 +11,7 @@ const createBooking = Joi.object({
   memberCount: Joi.number().integer().min(1).optional(),
   preferredDate: Joi.date().iso().optional().allow(null),
   totalPackagePrice: Joi.number().min(0).optional(),
+  concessionAmount: Joi.number().min(0).optional().default(0),
   members: Joi.array().items(
     Joi.object({
       name: Joi.string().required(),
@@ -51,6 +52,7 @@ const addPayment = Joi.object({
   paymentMethod: Joi.string().required(),
   transactionId: Joi.string().optional(),
   paymentDate: Joi.date().iso().required(),
+  concessionAmount: Joi.number().min(0).optional(),
 });
 
 const cancelBooking = Joi.object({

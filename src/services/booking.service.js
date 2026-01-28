@@ -5,7 +5,7 @@ const { BOOKING_STATUS } = require('../utils/constants'); // Import constants
 const createBooking = async (data, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
-    const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl, memberCount: inputMemberCount, preferredDate, totalPackagePrice } = data;
+    const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl, memberCount: inputMemberCount, preferredDate, totalPackagePrice, concessionAmount } = data;
 
     // Check if trip exists and belongs to partner
     const trip = await Trip.findOne({
@@ -38,7 +38,8 @@ const createBooking = async (data, partnerId) => {
       memberCount: memberCount,
       preferredDate: preferredDate || null,
       totalPackagePrice: totalPackagePrice || null,
-      status: (totalAmount >= (totalPackagePrice ? parseFloat(totalPackagePrice) : parseFloat(trip.price) * memberCount)) ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.PENDING,
+      concessionAmount: concessionAmount || 0,
+      status: (totalAmount >= (totalPackagePrice ? parseFloat(totalPackagePrice) - (parseFloat(concessionAmount) || 0) : (parseFloat(trip.price) * memberCount) - (parseFloat(concessionAmount) || 0))) ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.PENDING,
     }, { transaction });
 
     // Create Customers
@@ -116,6 +117,9 @@ const getBookings = async (partnerId, tripId = null) => {
       } else {
         totalCost = tripPrice * effectiveMemberCount;
       }
+      
+      // Subtract concession
+      totalCost = Math.max(0, totalCost - (parseFloat(bookingJson.concessionAmount) || 0));
       
       const paidAmount = parseFloat(bookingJson.amount); // Net Paid (from DB)
     
@@ -196,6 +200,9 @@ const getBookingById = async (id, partnerId) => {
     } else {
         totalCost = tripPrice * effectiveMemberCount;
     }
+    
+    // Subtract concession
+    totalCost = Math.max(0, totalCost - (parseFloat(bookingJson.concessionAmount) || 0));
 
     // 2. Calculate Gross Paid & Refund from Payments Array
     // (Since booking.amount is Net, we derive Gross from payments for display if requested)
@@ -257,7 +264,19 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
     if (paymentType === 'balance') {
       const tripPrice = parseFloat(booking.Trip.price);
       const memberCount = booking.memberCount;
-      const totalTripCost = tripPrice * memberCount;
+      const cancelledMemberCount = booking.Customers.filter(c => c.status === 'cancelled').length;
+      const effectiveMemberCount = Math.max(0, memberCount - cancelledMemberCount);
+
+      let totalTripCost = 0;
+      if (booking.totalPackagePrice) {
+        totalTripCost = parseFloat(booking.totalPackagePrice);
+      } else {
+        totalTripCost = tripPrice * effectiveMemberCount;
+      }
+
+      // Subtract concession
+      totalTripCost = Math.max(0, totalTripCost - (parseFloat(booking.concessionAmount) || 0));
+
       const currentPaid = parseFloat(booking.amount);
 
       paymentAmount = totalTripCost - currentPaid;
@@ -281,12 +300,15 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
       paymentDate: paymentDate, // Use provided date
     }, { transaction });
 
-    // 4. Update Booking Amount (Total Paid)
+    // 4. Update Booking Amount (Total Paid) and Concession (if provided)
     const newTotalAmount = parseFloat(booking.amount) + paymentAmount;
+    const updateData = { amount: newTotalAmount };
+    
+    if (paymentData.concessionAmount !== undefined) {
+      updateData.concessionAmount = parseFloat(paymentData.concessionAmount);
+    }
 
-    await booking.update({
-      amount: newTotalAmount
-    }, { transaction });
+    await booking.update(updateData, { transaction });
 
     // 5. Check if Fully Paid -> Update Status
     // Re-fetch or calculate cost. We have Trip and Customers.
@@ -300,6 +322,11 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
     } else {
         totalCost = tripPrice * effectiveMemberCount;
     }
+
+    // Subtract concession (use the one from database, which might have been updated just above)
+    // We re-fetch or use updated value. To be safe, let's use the possibly updated value.
+    const finalConcession = paymentData.concessionAmount !== undefined ? parseFloat(paymentData.concessionAmount) : parseFloat(booking.concessionAmount);
+    totalCost = Math.max(0, totalCost - (finalConcession || 0));
 
     // Use tolerance for float comparison
     if (newTotalAmount >= totalCost - 0.01 && booking.status !== BOOKING_STATUS.CANCELLED && booking.status !== BOOKING_STATUS.PARTIAL_CANCELLED) {

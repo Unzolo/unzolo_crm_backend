@@ -25,6 +25,10 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
   },
+  concessionAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0,
+  },
   status: {
     type: DataTypes.ENUM(...Object.values(BOOKING_STATUS)),
     defaultValue: BOOKING_STATUS.PENDING,
