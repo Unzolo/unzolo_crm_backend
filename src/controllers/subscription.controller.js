@@ -3,11 +3,16 @@ const crypto = require('crypto');
 const config = require('../config/env');
 const { Partner } = require('../models');
 
-// Note: Ensure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set in .env
-const razorpay = new Razorpay({
-  key_id: config.razorpay.keyId,
-  key_secret: config.razorpay.keySecret,
-});
+// Helper to get Razorpay instance safely
+const getRazorpayInstance = () => {
+  if (!config.razorpay.keyId || !config.razorpay.keySecret) {
+    throw new Error('Razorpay API keys are missing in the server configuration (.env)');
+  }
+  return new Razorpay({
+    key_id: config.razorpay.keyId,
+    key_secret: config.razorpay.keySecret,
+  });
+};
 
 exports.createOrder = async (req, res) => {
   try {
@@ -17,6 +22,7 @@ exports.createOrder = async (req, res) => {
       receipt: `sub_${req.partner.id.substring(0, 8)}_${Date.now()}`,
     };
 
+    const razorpay = getRazorpayInstance();
     const order = await razorpay.orders.create(options);
     res.status(201).json({ 
         success: true,
