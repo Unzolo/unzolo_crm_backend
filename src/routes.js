@@ -8,6 +8,7 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const expenseRoutes = require('./routes/expense.routes');
 const enquiryRoutes = require('./routes/enquiry.routes');
+const customerRoutes = require('./routes/customer.routes');
 const adminRoutes = require('./routes/admin.routes');
 const systemRoutes = require('./routes/system.routes');
 const checkMaintenance = require('./middlewares/maintenance.middleware');
@@ -27,5 +28,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/enquiries', enquiryRoutes);
+router.use('/customers', customerRoutes);
 
 module.exports = router;
