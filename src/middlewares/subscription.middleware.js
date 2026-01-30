@@ -10,7 +10,7 @@ const checkSubscription = async (req, res, next) => {
         }
 
         // TEMP: Only apply gating to the test account for now
-        if (partner.email !== 'muhammedrafeeqvr@gmail.com') {
+        if (partner.email !== 'muhammedrafeeqvr805@gmail.com') {
             return next();
         }
 
