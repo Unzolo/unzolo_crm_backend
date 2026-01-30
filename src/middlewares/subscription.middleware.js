@@ -2,7 +2,7 @@ const { Partner } = require('../models');
 
 const checkSubscription = async (req, res, next) => {
     try {
-        const partnerId = req.partner.id; // Populated by auth middleware
+        const partnerId = req.user.id; // Populated by auth middleware
         const partner = await Partner.findByPk(partnerId);
 
         if (!partner) {

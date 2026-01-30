@@ -19,7 +19,7 @@ exports.createOrder = async (req, res) => {
     const options = {
       amount: 300 * 100, // ₹300 in paise
       currency: "INR",
-      receipt: `sub_${req.partner.id.substring(0, 8)}_${Date.now()}`,
+      receipt: `sub_${req.user.id.substring(0, 8)}_${Date.now()}`,
     };
 
     const razorpay = getRazorpayInstance();
@@ -46,7 +46,7 @@ exports.verifyPayment = async (req, res) => {
 
     if (razorpay_signature === expectedSign) {
        // Payment verified successfully
-       const partner = await Partner.findByPk(req.partner.id);
+       const partner = await Partner.findByPk(req.user.id);
        
        const now = new Date();
        // If trial hasn't ended (before March 1), start from March 1
