@@ -1,4 +1,4 @@
-const { Partner, Trip, Booking, Payment, Customer, Enquiry, SystemSetting } = require('../models');
+const { Partner, Trip, Booking, Payment, Customer, Enquiry, SystemSetting, SubscriptionHistory } = require('../models');
 
 const getAllPartners = async () => {
     return await Partner.findAll({
@@ -203,6 +203,18 @@ const updatePartnerSubscription = async (partnerId, data) => {
     
     const { plan, subscriptionExpires, isWhatsappEnabled } = data;
     await partner.update({ plan, subscriptionExpires, isWhatsappEnabled });
+
+    // Log this as a manual transaction in history
+    await SubscriptionHistory.create({
+        partnerId: partner.id,
+        plan: plan || partner.plan,
+        amount: 0,
+        status: 'completed',
+        orderId: `MANUAL_${Date.now()}`,
+        metadata: { adminAction: true, note: 'Updated by administrator' },
+        expiryDate: subscriptionExpires
+    });
+
     return partner;
 };
 

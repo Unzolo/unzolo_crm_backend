@@ -11,4 +11,7 @@ router.post('/create-order', subscriptionController.createOrder);
 // Verify Razorpay Payment
 router.post('/verify-payment', subscriptionController.verifyPayment);
 
+// Get Purchase History
+router.get('/history', subscriptionController.getHistory);
+
 module.exports = router;

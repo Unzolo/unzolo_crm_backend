@@ -1,7 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const config = require('../config/env');
-const { Partner } = require('../models');
+const { Partner, SubscriptionHistory } = require('../models');
 
 // Helper to get Razorpay instance safely
 const getRazorpayInstance = () => {
@@ -24,6 +24,15 @@ exports.createOrder = async (req, res) => {
 
     const razorpay = getRazorpayInstance();
     const order = await razorpay.orders.create(options);
+
+    // Create a pending history record
+    await SubscriptionHistory.create({
+      partnerId: req.user.id,
+      orderId: order.id,
+      amount: 300,
+      status: 'pending',
+    });
+
     res.status(201).json({ 
         success: true,
         data: order 
@@ -61,25 +70,55 @@ exports.verifyPayment = async (req, res) => {
        const newExpiry = new Date(baseDate);
        newExpiry.setMonth(newExpiry.getMonth() + 1);
 
-       await partner.update({
-         plan: 'pro',
-         subscriptionExpires: newExpiry,
-         isWhatsappEnabled: true
-       });
+        await partner.update({
+          plan: 'pro',
+          subscriptionExpires: newExpiry,
+          isWhatsappEnabled: true
+        });
 
-       res.status(200).json({ 
-           success: true, 
-           message: "Payment verified! Your subscription is now active.",
-           data: {
-               plan: 'pro',
-               subscriptionExpires: newExpiry
-           }
-       });
+        // Update history record
+        await SubscriptionHistory.update({
+          paymentId: razorpay_payment_id,
+          signature: razorpay_signature,
+          status: 'completed',
+          expiryDate: newExpiry
+        }, {
+          where: { orderId: razorpay_order_id }
+        });
+
+        res.status(200).json({ 
+            success: true, 
+            message: "Payment verified! Your subscription is now active.",
+            data: {
+                plan: 'pro',
+                subscriptionExpires: newExpiry
+            }
+        });
     } else {
        res.status(400).json({ success: false, message: "Invalid payment signature" });
     }
   } catch (error) {
     console.error('Razorpay Verification Error:', error);
     res.status(500).json({ success: false, message: "Verification failed", error: error.message });
+  }
+};
+
+exports.getHistory = async (req, res) => {
+  try {
+    const history = await SubscriptionHistory.findAll({
+      where: { 
+        partnerId: req.user.id,
+        status: 'completed' // Only show successful payments to the user
+      },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: history
+    });
+  } catch (error) {
+    console.error('Fetch History Error:', error);
+    res.status(500).json({ success: false, message: "Failed to fetch purchase history" });
   }
 };
