@@ -1,6 +1,10 @@
-const { Trip, Expense, sequelize } = require('../models');
+const { Trip, Expense, Partner, sequelize } = require('../models');
 
 const createTrip = async (data, partnerId) => {
+  const partner = await Partner.findByPk(partnerId);
+  if (!partner || !partner.hasActiveSubscription()) {
+    throw new Error('Subscription required to create trips. Please upgrade your plan.');
+  }
   // data contains title, description, price, destination, advanceAmount, type, startDate, endDate, capacity
   return await Trip.create({ ...data, partnerId });
 };

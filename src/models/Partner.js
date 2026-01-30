@@ -52,6 +52,18 @@ const Partner = sequelize.define('Partner', {
     type: DataTypes.ENUM('active', 'inactive', 'blocked'),
     defaultValue: 'active',
   },
+  plan: {
+    type: DataTypes.ENUM('free', 'pro'),
+    defaultValue: 'free',
+  },
+  subscriptionExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  isWhatsappEnabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 }, {
   tableName: 'partners',
   timestamps: true,
@@ -68,6 +80,17 @@ const Partner = sequelize.define('Partner', {
     },
   },
 });
+
+Partner.prototype.hasActiveSubscription = function () {
+    const isTrialActive = new Date() < new Date("2026-03-01");
+    if (isTrialActive) return true;
+    
+    if (this.plan === 'pro' && this.subscriptionExpires) {
+        return new Date() < new Date(this.subscriptionExpires);
+    }
+    
+    return false;
+};
 
 Partner.prototype.validatePassword = async function (password) {
   return await bcrypt.compare(password, this.password);

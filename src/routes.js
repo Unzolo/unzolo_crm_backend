@@ -10,6 +10,7 @@ const expenseRoutes = require('./routes/expense.routes');
 const enquiryRoutes = require('./routes/enquiry.routes');
 const customerRoutes = require('./routes/customer.routes');
 const adminRoutes = require('./routes/admin.routes');
+const subscriptionRoutes = require('./routes/subscription.routes');
 const systemRoutes = require('./routes/system.routes');
 const checkMaintenance = require('./middlewares/maintenance.middleware');
 
@@ -29,5 +30,6 @@ router.use('/payments', paymentRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/enquiries', enquiryRoutes);
 router.use('/customers', customerRoutes);
+router.use('/subscriptions', subscriptionRoutes);
 
 module.exports = router;

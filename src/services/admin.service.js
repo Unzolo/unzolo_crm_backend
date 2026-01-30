@@ -197,10 +197,20 @@ const getBookingDetails = async (bookingId) => {
     };
 };
 
+const updatePartnerSubscription = async (partnerId, data) => {
+    const partner = await Partner.findByPk(partnerId);
+    if (!partner) throw new Error('Partner not found');
+    
+    const { plan, subscriptionExpires, isWhatsappEnabled } = data;
+    await partner.update({ plan, subscriptionExpires, isWhatsappEnabled });
+    return partner;
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
     updatePartnerStatus,
+    updatePartnerSubscription,
     getGlobalStats,
     getTripBookings,
     getAllTrips,

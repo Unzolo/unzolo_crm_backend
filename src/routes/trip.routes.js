@@ -4,10 +4,11 @@ const tripController = require('../controllers/trip.controller');
 const validate = require('../middlewares/validate.middleware');
 const { createTrip, updateTrip } = require('../validations/trip.validation');
 const authenticate = require('../middlewares/auth.middleware');
+const checkSubscription = require('../middlewares/subscription.middleware');
 
 router.use(authenticate);
 
-router.post('/', validate(createTrip), tripController.createTrip);
+router.post('/', checkSubscription, validate(createTrip), tripController.createTrip);
 router.get('/', tripController.getTrips);
 router.get('/:id', tripController.getTripById);
 router.patch('/:id', validate(updateTrip), tripController.updateTrip);

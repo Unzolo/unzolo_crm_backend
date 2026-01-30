@@ -1,11 +1,64 @@
-const { Booking, Trip, Customer, Payment, sequelize } = require('../models');
+const { Booking, Trip, Customer, Payment, Partner, sequelize } = require('../models');
 const { BOOKING_STATUS } = require('../utils/constants'); // Import constants
+const whatsappService = require('./whatsapp.service');
+const pdfService = require('./pdf.service');
+
+const triggerBookingNotifications = async (bookingId, partnerId, type, extraData = {}) => {
+  try {
+    const [booking, partner] = await Promise.all([
+      getBookingById(bookingId, partnerId),
+      Partner.findByPk(partnerId)
+    ]);
+
+    if (!partner || !partner.hasActiveSubscription()) return;
+
+    let phone = booking.Customers?.find(c => c.contactNumber)?.contactNumber;
+    if (!phone) return;
+
+    // Standardize phone format if needed (e.g. ensure +91)
+    if (phone.length === 10) phone = '91' + phone;
+
+    if (type === 'CONFIRMATION') {
+      const pdfBuffer = await pdfService.generateBookingPDF(booking);
+      await whatsappService.sendWhatsAppMedia(
+        partner,
+        phone,
+        `*Booking Confirmed!* \n\nDear ${booking.Customers[0].name}, your booking for *${booking.Trip.title}* has been confirmed. Please find the confirmation details attached.`,
+        pdfBuffer,
+        `Booking_${booking.id}.pdf`
+      );
+    } else if (type === 'PAYMENT') {
+      const pdfBuffer = await pdfService.generatePaymentPDF(booking, extraData.payment);
+      await whatsappService.sendWhatsAppMedia(
+        partner,
+        phone,
+        `*Payment Received!* \n\nThank you for the payment of *INR ${parseFloat(extraData.payment.amount).toLocaleString()}*. Attached is your payment receipt.`,
+        pdfBuffer,
+        `Receipt_${extraData.payment.id}.pdf`
+      );
+    } else if (type === 'CANCELLATION') {
+      await whatsappService.sendWhatsAppText(
+        partner,
+        phone,
+        `*Booking Update* \n\nYour booking for *${booking.Trip.title}* has been updated/cancelled. Status: ${booking.status.toUpperCase()}.`
+      );
+    }
+  } catch (err) {
+    console.error('Notification Trigger Error:', err.message);
+  }
+};
 
 
 const createBooking = async (data, partnerId) => {
   const transaction = await sequelize.transaction();
   try {
     const { tripId, members, paymentType, customAmount, amount, paymentMethod, paymentDate, transactionId, screenshotUrl, memberCount: inputMemberCount, preferredDate, totalPackagePrice, concessionAmount } = data;
+
+    // Check for active subscription
+    const partner = await Partner.findByPk(partnerId, { transaction });
+    if (!partner || !partner.hasActiveSubscription()) {
+      throw new Error('Subscription required to create bookings. Please upgrade your plan.');
+    }
 
     // Check if trip exists and belongs to partner
     const trip = await Trip.findOne({
@@ -63,6 +116,9 @@ const createBooking = async (data, partnerId) => {
     }, { transaction });
 
     await transaction.commit();
+
+    // Trigger Notification (Async)
+    triggerBookingNotifications(booking.id, partnerId, 'CONFIRMATION');
 
     // Return booking with customers
     return await Booking.findByPk(booking.id, {
@@ -344,6 +400,9 @@ const addPaymentToBooking = async (bookingId, paymentData, partnerId) => {
 
     await transaction.commit();
 
+    // Trigger Notification (Async)
+    triggerBookingNotifications(booking.id, partnerId, 'PAYMENT', { payment });
+
     return await getBookingById(bookingId, partnerId);
   } catch (error) {
     if (transaction) await transaction.rollback();
@@ -417,6 +476,9 @@ const cancelBookingMembers = async (bookingId, data, partnerId) => {
     await Booking.update({ status: newStatus }, { where: { id: bookingId }, transaction });
 
     await transaction.commit();
+
+    // Trigger Notification (Async)
+    triggerBookingNotifications(bookingId, partnerId, 'CANCELLATION');
     return await getBookingById(bookingId, partnerId);
 
   } catch (error) {

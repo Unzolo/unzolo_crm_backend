@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const expenseController = require('../controllers/expense.controller');
 const authenticate = require('../middlewares/auth.middleware');
+const checkSubscription = require('../middlewares/subscription.middleware');
 const upload = require('../middlewares/upload.middleware');
 
 // All routes require authentication
 router.use(authenticate);
 
 // Create expense (with optional receipt upload)
-router.post('/', upload.single('receipt'), expenseController.createExpense);
+router.post('/', checkSubscription, upload.single('receipt'), expenseController.createExpense);
 
 // Get all expenses for a trip
 router.get('/trip/:tripId', expenseController.getExpensesByTrip);
@@ -20,9 +21,9 @@ router.get('/trip/:tripId/analytics', expenseController.getExpenseAnalytics);
 router.get('/:id', expenseController.getExpenseById);
 
 // Update expense (with optional receipt upload)
-router.put('/:id', upload.single('receipt'), expenseController.updateExpense);
+router.put('/:id', checkSubscription, upload.single('receipt'), expenseController.updateExpense);
 
 // Delete expense
-router.delete('/:id', expenseController.deleteExpense);
+router.delete('/:id', checkSubscription, expenseController.deleteExpense);
 
 module.exports = router;

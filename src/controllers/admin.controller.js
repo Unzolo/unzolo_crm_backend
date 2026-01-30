@@ -85,10 +85,21 @@ const toggleMaintenanceMode = async (req, res) => {
     }
 };
 
+const updatePartnerSubscription = async (req, res) => {
+    try {
+        const { plan, subscriptionExpires, isWhatsappEnabled } = req.body;
+        const partner = await adminService.updatePartnerSubscription(req.params.id, { plan, subscriptionExpires, isWhatsappEnabled });
+        return success(res, partner, 'Partner subscription updated successfully');
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
     updatePartnerStatus,
+    updatePartnerSubscription,
     getGlobalStats,
     getTripBookings,
     getAllTrips,
