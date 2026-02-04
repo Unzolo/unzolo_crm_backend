@@ -240,6 +240,10 @@ const getBookingById = async (id, partnerId) => {
         model: Payment,
         separate: true, // Use separate query for sorting
         order: [['paymentDate', 'DESC']]
+      },
+      {
+        model: Partner,
+        attributes: ['companyName', 'phoneNumber']
       }
     ],
   });
