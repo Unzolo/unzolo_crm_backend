@@ -32,6 +32,10 @@ const Customer = sequelize.define('Customer', {
     type: DataTypes.ENUM('active', 'cancelled'),
     defaultValue: 'active',
   },
+  place: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   tableName: 'customers',
   timestamps: true,

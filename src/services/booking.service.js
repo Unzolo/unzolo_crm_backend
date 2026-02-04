@@ -516,7 +516,8 @@ const updateParticipants = async (bookingId, participants, partnerId) => {
             age: p.age,
             gender: p.gender,
             contactNumber: p.contactNumber,
-            isPrimary: p.isPrimary
+            isPrimary: p.isPrimary,
+            place: p.place
           }, { where: { id: p.id }, transaction });
         }
       } else {
