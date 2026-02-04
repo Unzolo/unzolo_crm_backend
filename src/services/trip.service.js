@@ -58,6 +58,18 @@ const getTrips = async (partnerId) => {
   }));
 };
 
+const getInactiveTrips = async (partnerId) => {
+  const trips = await Trip.findAll({ 
+    where: { 
+      partnerId,
+      status: 'inactive'
+    },
+    order: [['updatedAt', 'DESC']]
+  });
+  
+  return trips.map(trip => trip.toJSON());
+};
+
 const getTripById = async (id, partnerId) => {
   const trip = await Trip.findOne({ 
     where: { 
@@ -104,10 +116,20 @@ const deleteTrip = async (id, partnerId) => {
   return true;
 };
 
+const recoverTrip = async (id, partnerId) => {
+  const trip = await Trip.findOne({ where: { id, partnerId, status: 'inactive' } });
+  if (!trip) throw new Error('Inactive trip not found');
+  
+  await trip.update({ status: 'active' });
+  return trip;
+};
+
 module.exports = {
   createTrip,
   getTrips,
   getTripById,
   updateTrip,
   deleteTrip,
+  getInactiveTrips,
+  recoverTrip,
 };

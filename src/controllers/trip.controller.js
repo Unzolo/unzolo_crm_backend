@@ -47,10 +47,30 @@ const deleteTrip = async (req, res) => {
   }
 };
 
+const getInactiveTrips = async (req, res) => {
+  try {
+    const trips = await tripService.getInactiveTrips(req.user.id);
+    return success(res, trips);
+  } catch (err) {
+    return error(res, err.message);
+  }
+};
+
+const recoverTrip = async (req, res) => {
+  try {
+    const trip = await tripService.recoverTrip(req.params.id, req.user.id);
+    return success(res, trip, 'Trip recovered successfully');
+  } catch (err) {
+    return error(res, err.message);
+  }
+};
+
 module.exports = {
   createTrip,
   getTrips,
   getTripById,
   updateTrip,
   deleteTrip,
+  getInactiveTrips,
+  recoverTrip,
 };

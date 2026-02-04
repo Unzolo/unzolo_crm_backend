@@ -10,8 +10,10 @@ router.use(authenticate);
 
 router.post('/', checkSubscription, validate(createTrip), tripController.createTrip);
 router.get('/', tripController.getTrips);
+router.get('/deleted', tripController.getInactiveTrips);
 router.get('/:id', tripController.getTripById);
 router.patch('/:id', validate(updateTrip), tripController.updateTrip);
+router.patch('/:id/recover', tripController.recoverTrip);
 router.delete('/:id', tripController.deleteTrip);
 
 module.exports = router;
