@@ -199,8 +199,13 @@ const getBookings = async (partnerId, tripId = null) => {
     let advancePaidCustomers = 0;
     let totalCollected = 0;
     let totalPending = 0;
+    let activeBookingsCount = 0;
 
     formattedBookings.forEach(b => {
+      // Exclude fully cancelled bookings from summary totals
+      if (b.status === BOOKING_STATUS.CANCELLED) return;
+
+      activeBookingsCount++;
       totalCustomers += b.activeMemberCount; // User defined logic might vary, but active customers makes sense for summary
       totalCollected += b.paidAmount; // Net collected
       
@@ -221,7 +226,8 @@ const getBookings = async (partnerId, tripId = null) => {
         fullyPaidCustomers,
         advancePaidCustomers,
         totalCollected,
-        totalPending
+        totalPending,
+        activeBookingsCount
       },
       bookings: formattedBookings
     };

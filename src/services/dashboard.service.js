@@ -14,14 +14,24 @@ const getStats = async (partnerId) => {
     where: { 
       partnerId,
       status: { [Op.ne]: BOOKING_STATUS.CANCELLED }
-    } 
+    },
+    include: [{
+      model: Trip,
+      where: { status: 'active' },
+      required: true
+    }]
   });
   
   const earnings = await Booking.sum('amount', { 
     where: { 
       partnerId,
       status: { [Op.ne]: BOOKING_STATUS.CANCELLED }
-    } 
+    },
+    include: [{
+      model: Trip,
+      where: { status: 'active' },
+      required: true
+    }]
   }) || 0;
   
   // Basic monthly earnings (current month)
@@ -36,7 +46,12 @@ const getStats = async (partnerId) => {
       createdAt: {
         [Op.gte]: startOfMonth
       }
-    } 
+    },
+    include: [{
+      model: Trip,
+      where: { status: 'active' },
+      required: true
+    }]
   }) || 0;
 
   return {
