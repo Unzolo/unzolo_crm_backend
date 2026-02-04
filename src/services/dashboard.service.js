@@ -1,11 +1,28 @@
 const { Booking, Trip } = require('../models');
 const { Op } = require('sequelize');
+const { BOOKING_STATUS } = require('../utils/constants');
 
 const getStats = async (partnerId) => {
-  const totalTrips = await Trip.count({ where: { partnerId } });
-  const totalBookings = await Booking.count({ where: { partnerId } });
+  const totalTrips = await Trip.count({ 
+    where: { 
+      partnerId,
+      status: 'active'
+    } 
+  });
   
-  const earnings = await Booking.sum('amount', { where: { partnerId } }) || 0;
+  const totalBookings = await Booking.count({ 
+    where: { 
+      partnerId,
+      status: { [Op.ne]: BOOKING_STATUS.CANCELLED }
+    } 
+  });
+  
+  const earnings = await Booking.sum('amount', { 
+    where: { 
+      partnerId,
+      status: { [Op.ne]: BOOKING_STATUS.CANCELLED }
+    } 
+  }) || 0;
   
   // Basic monthly earnings (current month)
   const startOfMonth = new Date();
@@ -15,6 +32,7 @@ const getStats = async (partnerId) => {
   const monthlyEarnings = await Booking.sum('amount', { 
     where: { 
       partnerId,
+      status: { [Op.ne]: BOOKING_STATUS.CANCELLED },
       createdAt: {
         [Op.gte]: startOfMonth
       }
