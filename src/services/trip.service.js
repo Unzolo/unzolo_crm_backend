@@ -1,4 +1,4 @@
-const { Trip, Expense, Partner, sequelize } = require('../models');
+const { Trip, Expense, Partner, Booking, sequelize } = require('../models');
 
 const createTrip = async (data, partnerId) => {
   const partner = await Partner.findByPk(partnerId);
