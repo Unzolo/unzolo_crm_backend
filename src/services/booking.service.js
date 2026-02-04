@@ -243,7 +243,7 @@ const getBookingById = async (id, partnerId) => {
       },
       {
         model: Partner,
-        attributes: ['companyName', 'phoneNumber']
+        attributes: ['name', 'phone']
       }
     ],
   });
