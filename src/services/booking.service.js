@@ -62,7 +62,11 @@ const createBooking = async (data, partnerId) => {
 
     // Check if trip exists and belongs to partner
     const trip = await Trip.findOne({
-      where: { id: tripId, partnerId },
+      where: { 
+        id: tripId, 
+        partnerId,
+        status: 'active'
+      },
       transaction
     });
     if (!trip) {
