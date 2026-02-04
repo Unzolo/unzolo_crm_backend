@@ -19,6 +19,7 @@ const createBooking = Joi.object({
       age: Joi.number().integer().min(0).required(),
       contactNumber: Joi.string().optional(),
       isPrimary: Joi.boolean().default(false),
+      place: Joi.string().optional().allow('', null),
     })
   ).min(1).required()
   .custom((value, helpers) => {
