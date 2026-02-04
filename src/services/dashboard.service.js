@@ -18,8 +18,10 @@ const getStats = async (partnerId) => {
     include: [{
       model: Trip,
       where: { status: 'active' },
-      required: true
-    }]
+      required: true,
+      attributes: []
+    }],
+    distinct: true
   });
   
   const earnings = await Booking.sum('amount', { 
@@ -30,7 +32,8 @@ const getStats = async (partnerId) => {
     include: [{
       model: Trip,
       where: { status: 'active' },
-      required: true
+      required: true,
+      attributes: []
     }]
   }) || 0;
   
@@ -50,7 +53,8 @@ const getStats = async (partnerId) => {
     include: [{
       model: Trip,
       where: { status: 'active' },
-      required: true
+      required: true,
+      attributes: []
     }]
   }) || 0;
 
