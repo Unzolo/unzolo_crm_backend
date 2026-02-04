@@ -487,10 +487,66 @@ const cancelBookingMembers = async (bookingId, data, partnerId) => {
   }
 };
 
+const updateParticipants = async (bookingId, participants, partnerId) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const booking = await Booking.findOne({
+      where: { id: bookingId, partnerId },
+      include: [{ model: Customer }],
+      transaction
+    });
+
+    if (!booking) {
+      throw new Error('Booking not found or access denied');
+    }
+
+    let addedCount = 0;
+
+    for (const p of participants) {
+      if (p.id) {
+        // Update existing customer
+        const customer = booking.Customers.find(c => c.id === p.id);
+        if (customer) {
+          await Customer.update({
+            name: p.name,
+            age: p.age,
+            gender: p.gender,
+            contactNumber: p.contactNumber,
+            isPrimary: p.isPrimary
+          }, { where: { id: p.id }, transaction });
+        }
+      } else {
+        // Add new customer
+        await Customer.create({
+          ...p,
+          bookingId: booking.id,
+          status: 'active'
+        }, { transaction });
+        addedCount++;
+      }
+    }
+
+    const newTotalCustomers = booking.Customers.length + addedCount;
+    if (newTotalCustomers > booking.memberCount) {
+      // Update memberCount if we added more participants than the current capacity
+      await booking.update({
+        memberCount: newTotalCustomers
+      }, { transaction });
+    }
+
+    await transaction.commit();
+    return await getBookingById(bookingId, partnerId);
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    throw error;
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
   getBookingById,
   addPaymentToBooking,
   cancelBookingMembers,
+  updateParticipants,
 };

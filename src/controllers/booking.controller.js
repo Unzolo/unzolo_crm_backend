@@ -96,11 +96,21 @@ const cancelBookingMembers = async (req, res) => {
   }
 };
 
+const updateParticipants = async (req, res) => {
+  try {
+    const { participants } = req.body;
+    const booking = await bookingService.updateParticipants(req.params.id, participants, req.user.id);
+    return success(res, booking, 'Participants updated successfully');
+  } catch (err) {
+    return error(res, err.message);
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
   getBookingById,
-  getBookingById,
   addPaymentToBooking,
   cancelBookingMembers,
+  updateParticipants,
 };

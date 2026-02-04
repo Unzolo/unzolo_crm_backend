@@ -15,5 +15,6 @@ router.get('/', bookingController.getBookings);
 router.get('/:id', bookingController.getBookingById);
 router.post('/:id/payments', checkSubscription, upload.single('screenshot'), parseMultipartBody, validate(addPayment), bookingController.addPaymentToBooking);
 router.post('/:id/cancel', checkSubscription, upload.single('screenshot'), parseMultipartBody, validate(cancelBooking), bookingController.cancelBookingMembers);
+router.put('/:id/participants', checkSubscription, bookingController.updateParticipants);
 
 module.exports = router;
