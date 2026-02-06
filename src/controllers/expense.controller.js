@@ -2,6 +2,7 @@ const { Expense, Trip } = require('../models');
 const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
+const { success, error } = require('../utils/response');
 
 // Create a new expense
 exports.createExpense = async (req, res) => {
@@ -11,7 +12,7 @@ exports.createExpense = async (req, res) => {
     // Verify trip exists
     const trip = await Trip.findByPk(tripId);
     if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
+      return error(res, 'Trip not found', 404);
     }
 
     let receipt = null;
@@ -30,13 +31,10 @@ exports.createExpense = async (req, res) => {
       receipt,
     });
 
-    res.status(201).json({
-      message: 'Expense created successfully',
-      data: expense,
-    });
-  } catch (error) {
-    console.error('Error creating expense:', error);
-    res.status(500).json({ message: 'Failed to create expense', error: error.message });
+    return success(res, expense, 'Expense created successfully', 201);
+  } catch (err) {
+    console.error('Error creating expense:', err);
+    return error(res, 'Failed to create expense');
   }
 };
 
@@ -62,19 +60,17 @@ exports.getExpensesByTrip = async (req, res) => {
 
     const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
 
-    res.status(200).json({
-      data: {
-        expenses,
-        summary: {
-          total: totalExpenses,
-          byCategory: totalsByCategory,
-          count: expenses.length,
-        },
+    return success(res, {
+      expenses,
+      summary: {
+        total: totalExpenses,
+        byCategory: totalsByCategory,
+        count: expenses.length,
       },
     });
-  } catch (error) {
-    console.error('Error fetching expenses:', error);
-    res.status(500).json({ message: 'Failed to fetch expenses', error: error.message });
+  } catch (err) {
+    console.error('Error fetching expenses:', err);
+    return error(res, 'Failed to fetch expenses');
   }
 };
 
@@ -88,13 +84,11 @@ exports.getExpenseAnalytics = async (req, res) => {
     });
 
     if (expenses.length === 0) {
-      return res.status(200).json({
-        data: {
-          total: 0,
-          byCategory: {},
-          count: 0,
-          averagePerDay: 0,
-        },
+      return success(res, {
+        total: 0,
+        byCategory: {},
+        count: 0,
+        averagePerDay: 0,
       });
     }
 
@@ -118,22 +112,20 @@ exports.getExpenseAnalytics = async (req, res) => {
     const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)) + 1;
     const averagePerDay = daysDiff > 0 ? total / daysDiff : total;
 
-    res.status(200).json({
-      data: {
-        total,
-        byCategory,
-        count: expenses.length,
-        averagePerDay,
-        dateRange: {
-          start: minDate,
-          end: maxDate,
-          days: daysDiff,
-        },
+    return success(res, {
+      total,
+      byCategory,
+      count: expenses.length,
+      averagePerDay,
+      dateRange: {
+        start: minDate,
+        end: maxDate,
+        days: daysDiff,
       },
     });
-  } catch (error) {
-    console.error('Error fetching expense analytics:', error);
-    res.status(500).json({ message: 'Failed to fetch analytics', error: error.message });
+  } catch (err) {
+    console.error('Error fetching expense analytics:', err);
+    return error(res, 'Failed to fetch analytics');
   }
 };
 
@@ -145,7 +137,7 @@ exports.updateExpense = async (req, res) => {
 
     const expense = await Expense.findByPk(id);
     if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
+      return error(res, 'Expense not found', 404);
     }
 
     let receipt = expense.receipt;
@@ -170,13 +162,10 @@ exports.updateExpense = async (req, res) => {
       receipt,
     });
 
-    res.status(200).json({
-      message: 'Expense updated successfully',
-      data: expense,
-    });
-  } catch (error) {
-    console.error('Error updating expense:', error);
-    res.status(500).json({ message: 'Failed to update expense', error: error.message });
+    return success(res, expense, 'Expense updated successfully');
+  } catch (err) {
+    console.error('Error updating expense:', err);
+    return error(res, 'Failed to update expense');
   }
 };
 
@@ -187,7 +176,7 @@ exports.deleteExpense = async (req, res) => {
 
     const expense = await Expense.findByPk(id);
     if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
+      return error(res, 'Expense not found', 404);
     }
 
     // Delete receipt file if exists
@@ -200,12 +189,10 @@ exports.deleteExpense = async (req, res) => {
 
     await expense.destroy();
 
-    res.status(200).json({
-      message: 'Expense deleted successfully',
-    });
-  } catch (error) {
-    console.error('Error deleting expense:', error);
-    res.status(500).json({ message: 'Failed to delete expense', error: error.message });
+    return success(res, null, 'Expense deleted successfully');
+  } catch (err) {
+    console.error('Error deleting expense:', err);
+    return error(res, 'Failed to delete expense');
   }
 };
 
@@ -219,14 +206,12 @@ exports.getExpenseById = async (req, res) => {
     });
 
     if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
+      return error(res, 'Expense not found', 404);
     }
 
-    res.status(200).json({
-      data: expense,
-    });
-  } catch (error) {
-    console.error('Error fetching expense:', error);
-    res.status(500).json({ message: 'Failed to fetch expense', error: error.message });
+    return success(res, expense);
+  } catch (err) {
+    console.error('Error fetching expense:', err);
+    return error(res, 'Failed to fetch expense');
   }
 };

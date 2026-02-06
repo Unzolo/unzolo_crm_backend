@@ -38,18 +38,38 @@ const updatePartnerStatus = async (partnerId, status) => {
 };
 
 const getGlobalStats = async () => {
-    const [partners, trips, bookings, totalEarnings] = await Promise.all([
+    const [partnersCount, tripsCount, bookingsCount, totalEarnings, recentBookings, maintenanceMode] = await Promise.all([
         Partner.count(),
         Trip.count(),
         Booking.count(),
-        Payment.sum('amount', { where: { status: 'completed' } })
+        Payment.sum('amount', { where: { status: 'completed' } }),
+        Booking.findAll({
+            limit: 5,
+            order: [['createdAt', 'DESC']],
+            include: [
+                { model: Partner, attributes: ['name'] },
+                { model: Trip, attributes: ['title'] }
+            ]
+        }),
+        getMaintenanceMode()
     ]);
 
+    const formattedRecentBookings = recentBookings.map(b => ({
+        id: b.id,
+        partnerName: b.Partner?.name || 'Partner',
+        tripTitle: b.Trip?.title || 'Untitled Trip',
+        totalAmount: b.amount,
+        status: b.status,
+        createdAt: b.createdAt
+    }));
+
     return {
-        totalPartners: partners,
-        totalTrips: trips,
-        totalBookings: bookings,
-        totalEarnings: totalEarnings || 0
+        totalPartners: partnersCount,
+        totalTrips: tripsCount,
+        totalBookings: bookingsCount,
+        totalEarnings: totalEarnings || 0,
+        recentBookings: formattedRecentBookings,
+        maintenanceMode
     };
 };
 
