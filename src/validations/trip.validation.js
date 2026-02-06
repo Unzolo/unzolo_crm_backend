@@ -9,9 +9,9 @@ const createTrip = Joi.object({
   type: Joi.string().valid('package', 'camp').optional(),
   startDate: Joi.date().iso().optional().allow(null),
   endDate: Joi.date().iso().min(Joi.ref('startDate')).optional().allow(null),
-  capacity: Joi.number().integer().min(1).optional(),
-  groupSize: Joi.string().optional().allow(''),
-  category: Joi.string().optional().allow(''),
+  capacity: Joi.number().integer().min(0).optional(),
+  groupSize: Joi.string().optional().allow('', null),
+  category: Joi.string().optional().allow('', null),
 });
 
 const updateTrip = Joi.object({
