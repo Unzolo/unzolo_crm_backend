@@ -70,7 +70,7 @@ exports.getExpensesByTrip = async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching expenses:', err);
-    return error(res, 'Failed to fetch expenses');
+    return error(res, 'Failed to fetch expenses: ' + (err.message || err), 500, err);
   }
 };
 
