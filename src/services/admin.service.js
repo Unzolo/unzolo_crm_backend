@@ -1,4 +1,4 @@
-const { Partner, Trip, Booking, Payment, Customer, Enquiry, SystemSetting, SubscriptionHistory } = require('../models');
+const { sequelize, Partner, Trip, Booking, Payment, Customer, Enquiry, SystemSetting, SubscriptionHistory } = require('../models');
 
 const getAllPartners = async () => {
     return await Partner.findAll({
@@ -40,43 +40,48 @@ const updatePartnerStatus = async (partnerId, status) => {
 };
 
 const getGlobalStats = async () => {
-    const [partnersCount, tripsCount, bookingsCount, totalEarnings, recentBookings, maintenanceMode] = await Promise.all([
-        Partner.count(),
-        Trip.count(),
-        Booking.count({ where: { isActive: true } }),
-        Payment.sum('amount', { 
-            include: [{ model: Booking, where: { isActive: true } }],
-            where: { status: 'completed' } 
-        }),
-        Booking.findAll({
-            where: { isActive: true },
-            limit: 5,
-            order: [['createdAt', 'DESC']],
-            include: [
-                { model: Partner, attributes: ['name'] },
-                { model: Trip, attributes: ['title'] }
-            ]
-        }),
-        getMaintenanceMode()
-    ]);
+    try {
+        const [partnersCount, tripsCount, bookingsCount, totalEarnings, recentBookings, maintenanceMode] = await Promise.all([
+            Partner.count(),
+            Trip.count(),
+            Booking.count({ where: { isActive: true } }),
+            Payment.sum(sequelize.col('Payment.amount'), { 
+                include: [{ model: Booking, where: { isActive: true }, attributes: [] }],
+                where: { '$Payment.status$': 'completed' } 
+            }),
+            Booking.findAll({
+                where: { isActive: true },
+                limit: 5,
+                order: [['createdAt', 'DESC']],
+                include: [
+                    { model: Partner, attributes: ['name'] },
+                    { model: Trip, attributes: ['title'] }
+                ]
+            }),
+            getMaintenanceMode()
+        ]);
 
-    const formattedRecentBookings = recentBookings.map(b => ({
-        id: b.id,
-        partnerName: b.Partner?.name || 'Partner',
-        tripTitle: b.Trip?.title || 'Untitled Trip',
-        totalAmount: b.amount,
-        status: b.status,
-        createdAt: b.createdAt
-    }));
+        const formattedRecentBookings = recentBookings.map(b => ({
+            id: b.id,
+            partnerName: b.Partner?.name || 'Partner',
+            tripTitle: b.Trip?.title || 'Untitled Trip',
+            totalAmount: b.amount,
+            status: b.status,
+            createdAt: b.createdAt
+        }));
 
-    return {
-        totalPartners: partnersCount,
-        totalTrips: tripsCount,
-        totalBookings: bookingsCount,
-        totalEarnings: totalEarnings || 0,
-        recentBookings: formattedRecentBookings,
-        maintenanceMode
-    };
+        return {
+            totalPartners: partnersCount,
+            totalTrips: tripsCount,
+            totalBookings: bookingsCount,
+            totalEarnings: parseFloat(totalEarnings || 0),
+            recentBookings: formattedRecentBookings,
+            maintenanceMode
+        };
+    } catch (err) {
+        console.error('Error in getGlobalStats:', err);
+        throw err;
+    }
 };
 
 const getTripBookings = async (tripId, includeInactive = false) => {
