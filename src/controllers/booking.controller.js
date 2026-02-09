@@ -31,8 +31,8 @@ const createBooking = async (req, res) => {
 
 const getBookings = async (req, res) => {
   try {
-    const { tripId } = req.query;
-    const bookings = await bookingService.getBookings(req.user.id, tripId);
+    const { tripId, includeInactive } = req.query;
+    const bookings = await bookingService.getBookings(req.user.id, tripId, includeInactive === 'true');
     return success(res, bookings);
   } catch (err) {
     return error(res, err.message);
@@ -106,6 +106,16 @@ const updateParticipants = async (req, res) => {
   }
 };
 
+const toggleBookingStatus = async (req, res) => {
+  try {
+    const { isActive } = req.body;
+    const booking = await bookingService.toggleBookingStatus(req.params.id, isActive, req.user.id);
+    return success(res, booking, `Booking ${isActive ? 'activated' : 'deactivated'} successfully`);
+  } catch (err) {
+    return error(res, err.message);
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
@@ -113,4 +123,5 @@ module.exports = {
   addPaymentToBooking,
   cancelBookingMembers,
   updateParticipants,
+  toggleBookingStatus,
 };

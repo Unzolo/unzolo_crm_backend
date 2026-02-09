@@ -41,7 +41,8 @@ const getGlobalStats = async (req, res) => {
 
 const getTripBookings = async (req, res) => {
     try {
-        const data = await adminService.getTripBookings(req.params.id);
+        const { includeInactive } = req.query;
+        const data = await adminService.getTripBookings(req.params.id, includeInactive === 'true');
         return success(res, data);
     } catch (err) {
         return error(res, err.message);
@@ -85,6 +86,16 @@ const toggleMaintenanceMode = async (req, res) => {
     }
 };
 
+const toggleBookingStatus = async (req, res) => {
+    try {
+        const { isActive } = req.body;
+        const booking = await adminService.toggleBookingStatus(req.params.id, isActive);
+        return success(res, booking, `Booking ${isActive ? 'activated' : 'deactivated'} successfully`);
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
 const updatePartnerSubscription = async (req, res) => {
     try {
         const { plan, subscriptionExpires, isWhatsappEnabled } = req.body;
@@ -105,5 +116,6 @@ module.exports = {
     getAllTrips,
     getBookingDetails,
     getMaintenanceMode,
-    toggleMaintenanceMode
+    toggleMaintenanceMode,
+    toggleBookingStatus
 };

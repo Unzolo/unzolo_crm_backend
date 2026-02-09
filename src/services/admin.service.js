@@ -17,6 +17,8 @@ const getPartnerDetails = async (partnerId) => {
                 include: [
                     {
                         model: Booking,
+                        where: { isActive: true },
+                        required: false,
                         include: [{ model: Payment }, { model: Customer }]
                     }
                 ]
@@ -41,9 +43,13 @@ const getGlobalStats = async () => {
     const [partnersCount, tripsCount, bookingsCount, totalEarnings, recentBookings, maintenanceMode] = await Promise.all([
         Partner.count(),
         Trip.count(),
-        Booking.count(),
-        Payment.sum('amount', { where: { status: 'completed' } }),
+        Booking.count({ where: { isActive: true } }),
+        Payment.sum('amount', { 
+            include: [{ model: Booking, where: { isActive: true } }],
+            where: { status: 'completed' } 
+        }),
         Booking.findAll({
+            where: { isActive: true },
             limit: 5,
             order: [['createdAt', 'DESC']],
             include: [
@@ -73,12 +79,17 @@ const getGlobalStats = async () => {
     };
 };
 
-const getTripBookings = async (tripId) => {
+const getTripBookings = async (tripId, includeInactive = false) => {
     const trip = await Trip.findByPk(tripId);
     if (!trip) throw new Error('Trip not found');
 
+    const whereClause = { tripId };
+    if (!includeInactive) {
+        whereClause.isActive = true;
+    }
+
     const bookings = await Booking.findAll({
-        where: { tripId },
+        where: whereClause,
         include: [
             { model: Customer },
             { model: Payment }
@@ -153,6 +164,8 @@ const getAllTrips = async () => {
             },
             {
                 model: Booking,
+                where: { isActive: true },
+                required: false,
                 attributes: ['id']
             }
         ],
@@ -238,6 +251,14 @@ const updatePartnerSubscription = async (partnerId, data) => {
     return partner;
 };
 
+const toggleBookingStatus = async (bookingId, isActive) => {
+    const booking = await Booking.findByPk(bookingId);
+    if (!booking) throw new Error('Booking not found');
+    
+    await booking.update({ isActive });
+    return booking;
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
@@ -248,7 +269,8 @@ module.exports = {
     getAllTrips,
     getBookingDetails,
     toggleMaintenanceMode,
-    getMaintenanceMode
+    getMaintenanceMode,
+    toggleBookingStatus
 };
 
 async function toggleMaintenanceMode(isEnabled) {

@@ -37,6 +37,10 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
 }, {
   tableName: 'bookings',
   timestamps: true,

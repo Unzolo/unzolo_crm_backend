@@ -13,6 +13,7 @@ const getStats = async (partnerId) => {
   const totalBookings = await Booking.count({ 
     where: { 
       partnerId,
+      isActive: true,
       status: { [Op.ne]: BOOKING_STATUS.CANCELLED }
     },
     include: [{
@@ -27,6 +28,7 @@ const getStats = async (partnerId) => {
   const earnings = await Booking.sum('amount', { 
     where: { 
       partnerId,
+      isActive: true,
       status: { [Op.ne]: BOOKING_STATUS.CANCELLED }
     },
     include: [{
@@ -45,6 +47,7 @@ const getStats = async (partnerId) => {
   const monthlyEarnings = await Booking.sum('amount', { 
     where: { 
       partnerId,
+      isActive: true,
       status: { [Op.ne]: BOOKING_STATUS.CANCELLED },
       createdAt: {
         [Op.gte]: startOfMonth

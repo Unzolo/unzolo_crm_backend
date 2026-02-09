@@ -32,6 +32,7 @@ const getTrips = async (partnerId) => {
   const bookingsCount = await Booking.findAll({
     where: { 
       tripId: tripIds,
+      isActive: true,
       status: { [require('sequelize').Op.ne]: 'cancelled' }
     },
     attributes: [
@@ -84,6 +85,7 @@ const getTripById = async (id, partnerId) => {
   const bookingCount = await Booking.count({ 
     where: { 
       tripId: id,
+      isActive: true,
       status: { [require('sequelize').Op.ne]: 'cancelled' }
     } 
   });

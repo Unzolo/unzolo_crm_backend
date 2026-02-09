@@ -138,8 +138,11 @@ const createBooking = async (data, partnerId) => {
   }
 };
 
-const getBookings = async (partnerId, tripId = null) => {
+const getBookings = async (partnerId, tripId = null, includeInactive = false) => {
   const whereClause = { partnerId };
+  if (!includeInactive) {
+    whereClause.isActive = true;
+  }
   if (tripId) {
     whereClause.tripId = tripId;
   }
@@ -557,6 +560,19 @@ const updateParticipants = async (bookingId, participants, partnerId) => {
   }
 };
 
+const toggleBookingStatus = async (bookingId, isActive, partnerId) => {
+  const booking = await Booking.findOne({
+    where: { id: bookingId, partnerId }
+  });
+
+  if (!booking) {
+    throw new Error('Booking not found or access denied');
+  }
+
+  await booking.update({ isActive });
+  return booking;
+};
+
 module.exports = {
   createBooking,
   getBookings,
@@ -564,4 +580,5 @@ module.exports = {
   addPaymentToBooking,
   cancelBookingMembers,
   updateParticipants,
+  toggleBookingStatus,
 };

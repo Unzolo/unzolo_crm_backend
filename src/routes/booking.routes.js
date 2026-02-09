@@ -17,4 +17,6 @@ router.post('/:id/payments', upload.single('screenshot'), parseMultipartBody, va
 router.post('/:id/cancel', upload.single('screenshot'), parseMultipartBody, validate(cancelBooking), bookingController.cancelBookingMembers);
 router.put('/:id/participants', bookingController.updateParticipants);
 
+router.patch('/:id/status', auth, bookingController.toggleBookingStatus);
+
 module.exports = router;
