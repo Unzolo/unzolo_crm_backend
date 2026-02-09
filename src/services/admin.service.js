@@ -45,9 +45,9 @@ const getGlobalStats = async () => {
             Partner.count(),
             Trip.count(),
             Booking.count({ where: { isActive: true } }),
-            Payment.sum(sequelize.col('Payment.amount'), { 
+            Payment.sum('Payment.amount', { 
                 include: [{ model: Booking, where: { isActive: true }, attributes: [] }],
-                where: { '$Payment.status$': 'completed' } 
+                where: { status: 'completed' } 
             }),
             Booking.findAll({
                 where: { isActive: true },
