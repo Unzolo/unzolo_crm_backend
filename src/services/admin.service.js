@@ -3,7 +3,7 @@ const { sequelize, Partner, Trip, Booking, Payment, Customer, Enquiry, SystemSet
 const getAllPartners = async () => {
     return await Partner.findAll({
         attributes: { exclude: ['password', 'otp', 'otpExpires', 'resetPasswordToken', 'resetPasswordExpire'] },
-        include: [{ model: Trip, attributes: ['id'] }],
+        include: [{ model: Trip, attributes: ['id'], where: { status: 'active' }, required: false }],
         order: [['createdAt', 'DESC']]
     });
 };
@@ -14,6 +14,8 @@ const getPartnerDetails = async (partnerId) => {
         include: [
             {
                 model: Trip,
+                where: { status: 'active' },
+                required: false,
                 include: [
                     {
                         model: Booking,
