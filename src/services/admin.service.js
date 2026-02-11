@@ -264,6 +264,35 @@ const toggleBookingStatus = async (bookingId, isActive) => {
     return booking;
 };
 
+const getRecentActivities = async () => {
+    try {
+        const [trips, bookings] = await Promise.all([
+            Trip.findAll({
+                limit: 5,
+                order: [['createdAt', 'DESC']],
+                include: [{ model: Partner, attributes: ['name'] }]
+            }),
+            Booking.findAll({
+                limit: 5,
+                order: [['createdAt', 'DESC']],
+                include: [
+                    { model: Partner, attributes: ['name'] },
+                    { model: Trip, attributes: ['title'] },
+                    { model: Partner, attributes: ['name'] }
+                ]
+            })
+        ]);
+
+        return {
+            trips,
+            bookings
+        };
+    } catch (err) {
+        console.error('Error in getRecentActivities:', err);
+        throw err;
+    }
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
@@ -275,7 +304,8 @@ module.exports = {
     getBookingDetails,
     toggleMaintenanceMode,
     getMaintenanceMode,
-    toggleBookingStatus
+    toggleBookingStatus,
+    getRecentActivities
 };
 
 async function toggleMaintenanceMode(isEnabled) {

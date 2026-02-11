@@ -106,6 +106,15 @@ const updatePartnerSubscription = async (req, res) => {
     }
 };
 
+const getRecentActivities = async (req, res) => {
+    try {
+        const data = await adminService.getRecentActivities();
+        return success(res, data);
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
@@ -117,5 +126,6 @@ module.exports = {
     getBookingDetails,
     getMaintenanceMode,
     toggleMaintenanceMode,
-    toggleBookingStatus
+    toggleBookingStatus,
+    getRecentActivities
 };
