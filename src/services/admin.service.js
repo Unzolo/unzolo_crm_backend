@@ -268,24 +268,25 @@ const getRecentActivities = async () => {
     try {
         const [trips, bookings] = await Promise.all([
             Trip.findAll({
-                limit: 5,
-                order: [['createdAt', 'DESC']],
-                include: [{ model: Partner, attributes: ['name'] }]
+                limit: 10,
+                include: [{ model: Partner, attributes: ['name'], required: false }],
+                order: [['createdAt', 'DESC']]
             }),
             Booking.findAll({
-                limit: 5,
-                order: [['createdAt', 'DESC']],
+                limit: 10,
                 include: [
-                    { model: Partner, attributes: ['name'] },
-                    { model: Trip, attributes: ['title'] },
-                    { model: Partner, attributes: ['name'] }
-                ]
+                    { model: Partner, attributes: ['name'], required: false },
+                    { model: Trip, attributes: ['title'], required: false }
+                ],
+                order: [['createdAt', 'DESC']]
             })
         ]);
 
+        console.log(`[DEBUG] Found ${trips.length} trips and ${bookings.length} bookings`);
+
         return {
-            trips,
-            bookings
+            trips: trips || [],
+            bookings: bookings || []
         };
     } catch (err) {
         console.error('Error in getRecentActivities:', err);
