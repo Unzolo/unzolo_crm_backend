@@ -115,6 +115,15 @@ const getRecentActivities = async (req, res) => {
     }
 };
 
+const getTopPerformers = async (req, res) => {
+    try {
+        const data = await adminService.getTopPerformers();
+        return success(res, data);
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
@@ -127,5 +136,6 @@ module.exports = {
     getMaintenanceMode,
     toggleMaintenanceMode,
     toggleBookingStatus,
-    getRecentActivities
+    getRecentActivities,
+    getTopPerformers
 };

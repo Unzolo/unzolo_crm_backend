@@ -264,6 +264,43 @@ const toggleBookingStatus = async (bookingId, isActive) => {
     return booking;
 };
 
+const getTopPerformers = async () => {
+    try {
+        const performers = await Partner.findAll({
+            attributes: [
+                'id',
+                'name',
+                [sequelize.fn('COUNT', sequelize.literal('DISTINCT "Bookings"."id"')), 'bookingsCount'],
+                [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('Bookings->Payments.amount')), 0), 'totalRevenue']
+            ],
+            include: [
+                {
+                    model: Booking,
+                    attributes: [],
+                    where: { isActive: true },
+                    required: false,
+                    include: [
+                        {
+                            model: Payment,
+                            attributes: [],
+                            where: { status: 'completed' },
+                            required: false
+                        }
+                    ]
+                }
+            ],
+            group: ['Partner.id'],
+            order: [[sequelize.literal('totalRevenue'), 'DESC']],
+            limit: 5,
+            subQuery: false
+        });
+        return performers;
+    } catch (err) {
+        console.error('Error in getTopPerformers:', err);
+        throw err;
+    }
+};
+
 const getRecentActivities = async () => {
     try {
         const [trips, bookings] = await Promise.all([
@@ -306,7 +343,8 @@ module.exports = {
     toggleMaintenanceMode,
     getMaintenanceMode,
     toggleBookingStatus,
-    getRecentActivities
+    getRecentActivities,
+    getTopPerformers
 };
 
 async function toggleMaintenanceMode(isEnabled) {

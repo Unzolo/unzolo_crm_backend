@@ -18,6 +18,7 @@ router.get('/trips', adminController.getAllTrips);
 router.get('/bookings/:id', adminController.getBookingDetails);
 router.patch('/bookings/:id/status', adminController.toggleBookingStatus);
 router.get('/activities', adminController.getRecentActivities);
+router.get('/performers', adminController.getTopPerformers);
 
 // System Settings
 router.get('/settings/maintenance', adminController.getMaintenanceMode);
