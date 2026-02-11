@@ -365,6 +365,13 @@ const getRecentActivities = async () => {
     }
 };
 
+const deleteTrip = async (id) => {
+    const trip = await Trip.findByPk(id);
+    if (!trip) throw new Error('Trip not found');
+    await trip.update({ status: 'inactive' });
+    return true;
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
@@ -378,7 +385,8 @@ module.exports = {
     getMaintenanceMode,
     toggleBookingStatus,
     getRecentActivities,
-    getTopPerformers
+    getTopPerformers,
+    deleteTrip
 };
 
 async function toggleMaintenanceMode(isEnabled) {

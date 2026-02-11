@@ -124,6 +124,15 @@ const getTopPerformers = async (req, res) => {
     }
 };
 
+const deleteTrip = async (req, res) => {
+    try {
+        await adminService.deleteTrip(req.params.id);
+        return success(res, null, 'Trip deleted successfully');
+    } catch (err) {
+        return error(res, err.message);
+    }
+};
+
 module.exports = {
     getAllPartners,
     getPartnerDetails,
@@ -137,5 +146,6 @@ module.exports = {
     toggleMaintenanceMode,
     toggleBookingStatus,
     getRecentActivities,
-    getTopPerformers
+    getTopPerformers,
+    deleteTrip
 };

@@ -15,6 +15,7 @@ router.patch('/partners/:id/status', adminController.updatePartnerStatus);
 router.patch('/partners/:id/subscription', adminController.updatePartnerSubscription);
 router.get('/trips/:id/bookings', adminController.getTripBookings);
 router.get('/trips', adminController.getAllTrips);
+router.delete('/trips/:id', adminController.deleteTrip);
 router.get('/bookings/:id', adminController.getBookingDetails);
 router.patch('/bookings/:id/status', adminController.toggleBookingStatus);
 router.get('/activities', adminController.getRecentActivities);
