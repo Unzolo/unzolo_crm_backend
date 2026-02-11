@@ -266,35 +266,69 @@ const toggleBookingStatus = async (bookingId, isActive) => {
 
 const getTopPerformers = async () => {
     try {
-        const performers = await Partner.findAll({
-            attributes: [
-                'id',
-                'name',
-                [sequelize.fn('COUNT', sequelize.literal('DISTINCT "Bookings"."id"')), 'bookingsCount'],
-                [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('Bookings->Payments.amount')), 0), 'totalRevenue']
-            ],
+        // Fetch partners with their bookings and trips to calculate performance in JS
+        // This avoids complex SQL aggregation issues across different dialects like Postgres
+        const partners = await Partner.findAll({
+            attributes: ['id', 'name'],
             include: [
                 {
                     model: Booking,
-                    attributes: [],
                     where: { isActive: true },
                     required: false,
+                    attributes: ['id', 'createdAt'],
                     include: [
                         {
                             model: Payment,
-                            attributes: [],
                             where: { status: 'completed' },
-                            required: false
+                            required: false,
+                            attributes: ['amount']
                         }
                     ]
+                },
+                {
+                    model: Trip,
+                    required: false,
+                    attributes: ['id', 'createdAt']
                 }
-            ],
-            group: ['Partner.id'],
-            order: [[sequelize.literal('totalRevenue'), 'DESC']],
-            limit: 5,
-            subQuery: false
+            ]
         });
-        return performers;
+
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+
+        const performers = partners.map(partner => {
+            const bookings = partner.Bookings || [];
+            const trips = partner.Trips || [];
+            
+            // Calculate total revenue
+            const totalRevenue = bookings.reduce((sum, b) => {
+                const payments = b.Payments || [];
+                return sum + payments.reduce((pSum, p) => pSum + parseFloat(p.amount || 0), 0);
+            }, 0);
+
+            // Calculate "Recent Activity Score" (Bookings and Trips in last 30 days)
+            const recentBookings = bookings.filter(b => new Date(b.createdAt) > thirtyDaysAgo).length;
+            const recentTrips = trips.filter(t => new Date(t.createdAt) > thirtyDaysAgo).length;
+            const activityScore = recentBookings + recentTrips;
+
+            return {
+                id: partner.id,
+                name: partner.name,
+                bookingsCount: bookings.length,
+                totalRevenue: parseFloat(totalRevenue || 0),
+                activityScore // For sorting based on "recent activity" as requested
+            };
+        });
+
+        // Sort by activity score first (recent activity), then by revenue
+        return performers
+            .sort((a, b) => {
+                if (b.activityScore !== a.activityScore) {
+                    return b.activityScore - a.activityScore;
+                }
+                return b.totalRevenue - a.totalRevenue;
+            })
+            .slice(0, 5);
     } catch (err) {
         console.error('Error in getTopPerformers:', err);
         throw err;
